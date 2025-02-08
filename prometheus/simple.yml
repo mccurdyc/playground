@@ -1,0 +1,98 @@
+tests:
+  - name: ''
+    interval: 1m # The interval field within a specific test defines the interval between points provided by your input_series.
+    input_series:
+      # https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/#series
+      - series: metric_1{a="a"}
+        values: '1'
+      - series: metric_2{b="b"}
+        values: '2'
+      - series: metric_3{c="c"}
+        values: '3'
+    promql_expr_test:
+      - expr: |
+          metric_2
+          -
+          metric_1
+        eval_time: 1m
+        exp_samples: [] # critical bug
+      # https://prometheus.io/docs/prometheus/latest/querying/operators/#vector-matching-keywords
+      # These vector matching keywords allow for matching between series with different label sets
+      - expr: |
+          metric_2
+          - on ()
+          metric_1
+        eval_time: 1m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+      - expr: |
+          min(
+            metric_1 or
+            metric_2
+          )
+        eval_time: 1m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+      - expr: |
+          max(
+            metric_1 or
+            metric_2 or
+            metric_3
+          )
+        eval_time: 1m
+        exp_samples:
+          - labels: '{}'
+            value: 3
+      - expr: |
+          max(
+            # =1
+            (metric_3 - metric_2) or
+            # =2
+            (metric_3 - metric_1)
+          )
+        eval_time: 1m
+        exp_samples: [] # critical bug
+      - expr: |
+          max(
+            # =1
+            (metric_3 - on() metric_2) or
+            # =2
+            (metric_3 - on() metric_1)
+          )
+        eval_time: 1m
+        exp_samples:
+          - labels: '{}'
+            value: 1 # critical bug, you'd expect max (1 or 2) to be 2, but that's not how 'or' works
+      # https://prometheus.io/docs/prometheus/latest/querying/operators/#logical-set-binary-operators
+      # 'or (union)'
+      # vector1 or vector2 results in a vector that contains all original elements
+      # (label sets + values) of vector1 and additionally all elements of vector2
+      # which do not have matching label sets in vector1.
+      #
+      # metric names and therfore, recording rules also come into play here because
+      # syntax like 'foo{}' are just syntactic sugar for '{__name__="foo"}' - https://grafana.com/blog/2022/03/21/how-relabeling-in-prometheus-works/#internal-labels
+      - expr: |
+          max(
+            # =1
+            (metric_3 - on() metric_2) or
+            # =2
+            (metric_3 - on() metric_1)
+          )
+        eval_time: 1m
+        exp_samples:
+          - labels: '{}'
+            value: 1 # critical bug, you'd expect max (1 or 2) to be 2, but that's not how 'or' works
+      - expr: |
+          max(
+            # =3 - (2*1) <- but we mess with labels of the right side in the multiplication
+            # =1
+            (metric_3 - metric_2 * on() group_left 1) or
+            # =2
+            (metric_3 - on() metric_1)
+          )
+        eval_time: 1m
+        exp_samples:
+          - labels: '{}'
+            value: 2 # critical bug
