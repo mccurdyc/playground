@@ -1,0 +1,36 @@
+#!/usr/bin/env -S just --justfile
+# ^ A shebang isn't required, but allows a justfile to be executed
+#   like a script, with `./justfile test`, for example.
+#
+# Just Manual - https://just.systems/man/en/
+# https://just.systems/man/en/working-directory.html
+# Settings - https://just.systems/man/en/settings.html
+# https://just.systems/man/en/settings.html#bash
+
+set shell := ["/usr/bin/env", "bash", "-uc"]
+
+log := "warn"
+export JUST_LOG := log
+
+set quiet := true
+
+# Inititalize the k3d cluster if it does not already exist
+k3d-init:
+    # k3d cluster get tilt || k3d cluster create --config k3d-config.yaml
+    k3d cluster create --config k3d-config.yaml
+
+# Stop the k3d cluster
+k3d-stop:
+    k3d cluster stop tilt
+
+# Resume the k3d cluster
+k3d-start:
+    k3d cluster start tilt
+
+# Delete the k3d cluster
+k3d-delete:
+    k3d cluster delete tilt
+
+# Starts Tilt
+tilt-up:
+    tilt up --host 0.0.0.0

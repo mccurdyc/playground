@@ -1,0 +1,28 @@
+# https://docs.docker.com/compose/compose-file/compose
+services:
+  envoy:
+    container_name: envoy
+    image: envoyproxy/envoy-tools:v1.33-latest
+    ports:
+      - "9901:9901" # admin interface - https://www.envoyproxy.io/docs/envoy/latest/operations/admin
+      - "10000:10000"
+    volumes:
+      - ".:/etc/envoy/"
+    entrypoint:
+      - "/usr/local/bin/envoy"
+      - "-c"
+      - "/etc/envoy/minimal-envoy-config.yaml"
+      - "--parent-shutdown-time-s"
+      - "5"
+      - "--drain-time-s"
+      - "3"
+      - "--drain-strategy"
+      - "immediate"
+      - "--component-log-level"
+      - "config:debug,runtime:trace,file:debug,http:debug,http2:debug,grpc:debug,lua:debug,ext_authz:trace,router:trace"
+    networks:
+      - minimal
+
+networks:
+  # necessary in order to be able to use Docker DNS which isn't used in the 'default' network.
+  minimal: {}
