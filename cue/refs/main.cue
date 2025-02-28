@@ -1,6 +1,6 @@
 package ref
 
-#Foo: [Name=string]: {
+#Foos: [Name=string]: {
 	bar:  string
 	name: Name
 	nested: {
@@ -8,9 +8,9 @@ package ref
 	}
 }
 
-_foo: #Foo
-_foo: "foo": {
-	bar: "bar"
+_foos: #Foos & {
+	"a": {bar: "aa"}
+	"b": {bar: "bb"}
 }
 
-output: _foo["foo"]
+output: [for _, v in _foos {v}]
