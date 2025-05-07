@@ -1,0 +1,23 @@
+---
+# ref: https://k3d.io/stable/usage/configfile/
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+
+metadata:
+  name: playground
+# https://k3d.io/stable/design/project/#anatomy-of-a-cluster
+# https://docs.k3s.io/architecture
+servers: 1 # primary server node (runs 'k3s server'); k8s api server + kubelet (where pods are scheduled) - https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
+agents: 0 # 0 b/c 'k3s server' also runs an agent - https://docs.k3s.io/cli/server; (kubelet where pods are scheduled) - https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
+kubeAPI:
+  host: "playground.dev"
+  hostIP: "127.0.0.1"
+  hostPort: "6445"
+image: rancher/k3s:v1.20.4-k3s1
+# https://k3d.io/v5.2.1/design/networking/
+# By default, k3d creates a new (docker) network for every new cluster.
+subnet: "172.20.0.0/16"
+ports:
+  - port: 8080:80
+    nodeFilters:
+      - loadbalancer
