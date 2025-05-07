@@ -1,6 +1,4 @@
 {
-  description = "Repo configuration";
-
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -14,7 +12,6 @@
 
       systems = [
         "aarch64-darwin"
-        "x86_64-darwin"
         "x86_64-linux"
       ];
 
@@ -46,6 +43,8 @@
             pkgs-unstable.nil
             pkgs.hadolint
             pkgs.yamllint
+            pkgs.yamlfmt
+            pkgs-unstable.prometheus.cli
 
             # Kubernetes
             pkgs.k3d
@@ -75,6 +74,12 @@
                 shfmt = {
                   enable = true;
                   entry = "shfmt --simplify --indent 2";
+                };
+
+                yamlfmt = {
+                  enable = true;
+                  # https://github.com/google/yamlfmt/blob/main/docs/config-file.md#basic-formatter
+                  entry = "yamlfmt -formatter indent=2,include_document_start=true,retain_line_breaks=true -w -dstar **/*.{yaml,yml}";
                 };
               };
             };

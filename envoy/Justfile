@@ -14,6 +14,8 @@ export JUST_LOG := log
 
 set quiet := true
 
+import './prometheus/Justfile'
+
 # Inititalize the k3d cluster if it does not already exist
 k3d-init:
     # k3d cluster get tilt || k3d cluster create --config k3d-config.yaml

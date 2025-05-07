@@ -1,0 +1,259 @@
+---
+# https://grafana.com/blog/2024/10/03/how-to-use-prometheus-to-efficiently-detect-anomalies-at-scale/
+#
+# We began with the same formula (based on the z-score formula) that most everyone starts with for anomaly detection:
+# Baselines = average ± stddev * multiplier
+#
+# The multiplier is part of the tuning parameters: a higher number results in wider
+# bands and less sensitivity, while a lower number would lead to more sensitivity.
+# The typical multiplier is 2 or 3.
+#
+# This is the same recommendation from Apple at KubeCon 2025
+#
+# https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/
+#
+# CRITICAL: It's CRITICAL for this all to work that we define all of these as recording
+# rules because recording rules ... with metric labels. In other words, we found
+# out the hard way that you CANNOT just copy the underlying metrics in to a dashboard to test things out,
+# they MUST be recording rules.
+groups:
+  - name: envoy_anomaly_rps
+
+    rules:
+      # This controls the stddev_1h_filtered metric
+      - record: envoy_anomaly_rps:threshold_by_covar
+        expr: 0.5
+        labels:
+          envoy_response_code_class: 2
+      - record: envoy_anomaly_rps:threshold_by_covar
+        expr: 0.5
+        labels:
+          envoy_response_code_class: 4
+      - record: envoy_anomaly_rps:threshold_by_covar
+        expr: 0.5
+        labels:
+          envoy_response_code_class: 5
+
+      # These control ...
+      - record: envoy_anomaly_rps:stddev_multiplier
+        expr: 0.3
+        labels:
+          envoy_response_code_class: 2
+      - record: envoy_anomaly_rps:stddev_multiplier
+        expr: 2
+        labels:
+          envoy_response_code_class: 4
+      - record: envoy_anomaly_rps:stddev_multiplier
+        expr: 0.3
+        labels:
+          envoy_response_code_class: 5
+
+      # These control ...
+      - record: envoy_anomaly_rps:margin_multiplier
+        expr: 0.3
+        labels:
+          envoy_response_code_class: 2
+      - record: envoy_anomaly_rps:margin_multiplier
+        expr: 2
+        labels:
+          envoy_response_code_class: 4
+      - record: envoy_anomaly_rps:margin_multiplier
+        expr: 2
+        labels:
+          envoy_response_code_class: 5
+
+      # We found that one hour was the sweet spot, as the system is tuned for short-term
+      # anomaly detection (large deviations in small time frames)
+      - record: envoy_anomaly_rps:avg_1h:rate_1m
+        expr: |
+          avg_over_time(
+            sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+              rate(envoy_http_downstream_rq_xx[1m])
+            )
+          [1h:1m])
+
+      - record: envoy_anomaly_rps:stddev_5m:rate_1m
+        expr: |
+          stddev_over_time(
+            sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+              rate(envoy_http_downstream_rq_xx[1m])
+            )
+          [5m:1m])
+
+      - record: envoy_anomaly_rps:stddev_1h:rate_1m
+        expr: |
+          stddev_over_time(
+            sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+              rate(envoy_http_downstream_rq_xx[1m])
+            )
+          [1h:1m])
+
+      # Low sensitivity
+      # The smoothing function did what we wanted, but it also resulted in a bit of
+      # an overcorrection. The bands were too narrow and not sensitive enough, which
+      # could lead to lots of false positives since the bands didn’t capture the normal fluctuations.
+      #
+      # Coming up with the threshold in that last line of the recording rule was a
+      # bit of a challenge. We want this framework to work for any metric, but different
+      # metrics have different magnitudes. For example, if you have a 10 request per
+      # second metric and you add five requests, that’s a big leap. But if you add
+      # that same number to a metric for 1,000 requests per second, it’s probably insignificant.
+      # To adapt to the threshold, we used a statistical concept known as coefficient of variation:
+      #
+      # This will take the greater of the stddev_1h or the (avg_1h * covar)
+      - record: envoy_anomaly_rps:stddev_1h_filtered:rate_1m
+        expr: |
+          stddev_over_time(
+            sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+              rate(envoy_http_downstream_rq_xx[1m])
+            )
+          [1h:1m])
+          >
+          sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:avg_1h:rate_1m
+          )
+          *
+          on(envoy_response_code_class) group_left envoy_anomaly_rps:threshold_by_covar
+
+      # We typically use 24 hours for these types of things, but we chose 26 instead
+      # to give users a bit more headroom. For example, if you have something that
+      # happens every 24 hours, you might get strange patterns where your bands start
+      # contracting or expanding. Or maybe it’s Daylight Savings Time, and the organic
+      # patterns shift as a result. The extra two hours gives us the buffer so we get more accurate predictions.
+      - record: envoy_anomaly_rps:stddev_26h:rate_1m
+        expr: |
+          stddev_over_time(
+            sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+              rate(envoy_http_downstream_rq_xx[1m])
+            )
+          [26h:1m])
+
+      # Extreme outliers:
+      # Because the standard deviation formula squares the differences, it can grow much
+      # faster than the average. As a result, extreme spikes can cause your bands to
+      # expand rapidly and you stop detecting anomalies, essentially rendering your system useless.
+      #
+      # We needed to control the rate at which those bands expanded, so we added a
+      # smoothing function to address the trade off between band sensitivity and
+      # false positives. We did so with these recording rules:
+      - record: envoy_anomaly_rps:stddev_short_term:rate_1m
+        expr: |
+          avg_over_time(
+            sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+              rate(envoy_anomaly_rps:stddev_1h:rate_1m[26h:1m])
+            )
+          [1h:1m])
+
+      # ====================================================================== #
+      # ======================== upper band short term ======================= #
+      # ====================================================================== #
+      - record: envoy_anomaly_rps:upper_band_short_term:rate_1m
+        expr: |
+          sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:avg_1h:rate_1m
+            +
+            envoy_anomaly_rps:stddev_26h:rate_1m
+            *
+            on(envoy_response_code_class) group_left envoy_anomaly_rps:stddev_multiplier
+          )
+
+      # ====================================================================== #
+      # ======================== upper band long term ======================== #
+      # ====================================================================== #
+      - record: envoy_anomaly_rps:upper_band_long_term:rate_1m
+        expr: |
+          sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:avg_1h:rate_1m offset 23h30m
+            +
+            envoy_anomaly_rps:stddev_1h:rate_1m offset 23h30m
+            *
+            on(envoy_response_code_class) group_left envoy_anomaly_rps:stddev_multiplier
+          )
+
+      # ====================================================================== #
+      # ========================== margin upper band ========================= #
+      # ====================================================================== #
+      # Discontinuities
+      # Filtering of low variability periods created another challenge, since extended
+      # windows of stable performance would essentially filter out everything.
+      # To address this, we introduced a new band that complements the one we just defined.
+      # It’s based on the average, and its purpose is to define the minimum width we’re willing to accept:
+      - record: envoy_anomaly_rps:margin_upper_band:rate_1m
+        expr: |
+          sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:avg_1h:rate_1m
+            +
+            envoy_anomaly_rps:avg_1h:rate_1m
+            *
+            on(envoy_response_code_class) group_left envoy_anomaly_rps:margin_multiplier
+          )
+
+      # ====================================================================== #
+      # ======================== lower band short term ======================= #
+      # ====================================================================== #
+      - record: envoy_anomaly_rps:lower_band_short_term:rate_1m
+        expr: |
+          sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:avg_1h:rate_1m
+            -
+            envoy_anomaly_rps:stddev_26h:rate_1m
+            *
+            on(envoy_response_code_class) group_left envoy_anomaly_rps:stddev_multiplier
+          )
+
+      # ====================================================================== #
+      # ======================== lower band long term ======================== #
+      # ====================================================================== #
+      - record: envoy_anomaly_rps:lower_band_long_term:rate_1m
+        expr: |
+          sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:avg_1h:rate_1m offset 23h30m
+            -
+            envoy_anomaly_rps:stddev_1h:rate_1m offset 23h30m
+            *
+            on(envoy_response_code_class) group_left envoy_anomaly_rps:stddev_multiplier
+          )
+
+      # ====================================================================== #
+      # ========================== margin lower band ========================= #
+      # ====================================================================== #
+      # Discontinuities
+      # Filtering of low variability periods created another challenge, since extended
+      # windows of stable performance would essentially filter out everything.
+      # To address this, we introduced a new band that complements the one we just defined.
+      # It’s based on the average, and its purpose is to define the minimum width we’re willing to accept:
+      - record: envoy_anomaly_rps:margin_lower_band:rate_1m
+        expr: |
+          sum by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:avg_1h:rate_1m
+            -
+            envoy_anomaly_rps:avg_1h:rate_1m
+            *
+            on(envoy_response_code_class) group_left envoy_anomaly_rps:margin_multiplier
+          )
+
+      # ====================================================================== #
+      # ============================ upper band ============================== #
+      # ====================================================================== #
+      - record: envoy_anomaly_rps:upper_band:rate_1m
+        expr: |
+          max by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:margin_upper_band:rate_1m
+            or
+            envoy_anomaly_rps:upper_band_short_term:rate_1m
+            or
+            envoy_anomaly_rps:upper_band_long_term:rate_1m
+          )
+
+      # ====================================================================== #
+      # ============================ lower band ============================== #
+      # ====================================================================== #
+      - record: envoy_anomaly_rps:lower_band:rate_1m
+        expr: |
+          min by (site, envoy_http_conn_manager_prefix, kubernetes_namespace, envoy_response_code_class) (
+            envoy_anomaly_rps:margin_lower_band:rate_1m
+            or
+            envoy_anomaly_rps:lower_band_short_term:rate_1m
+            or
+            envoy_anomaly_rps:lower_band_long_term:rate_1m
+          )

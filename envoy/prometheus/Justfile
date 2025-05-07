@@ -1,0 +1,14 @@
+#!/usr/bin/env -S just --justfile
+# ^ A shebang isn't required, but allows a justfile to be executed
+#   like a script, with `./justfile test`, for example.
+#
+# Just Manual - https://just.systems/man/en/
+# https://just.systems/man/en/working-directory.html
+# Settings - https://just.systems/man/en/settings.html
+# https://just.systems/man/en/settings.html#bash
+
+prom-check:
+    promtool check rules {{ source_directory() }}/envoy_anomaly_rps.yaml
+
+prom-test:
+    promtool test rules {{ source_directory() }}/envoy_anomaly_rps.yaml
