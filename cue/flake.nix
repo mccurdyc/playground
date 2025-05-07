@@ -1,6 +1,4 @@
 {
-  description = "Repo configuration";
-
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -10,7 +8,6 @@
 
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      # TODO: currently does nothing
       flake = { };
 
       systems = [
@@ -71,13 +68,12 @@
                   inherit system;
                   org = "cue-lang";
                   name = "cue";
-                  version = "v0.9.0-alpha.4";
-                  # 'nix-prefetch-url https://github.com/cue-lang/cue/releases/download/v0.9.0-alpha.4/cue_v0.9.0-alpha.4_darwin_arm64.tar.gz'
+                  version = "v0.13.0-alpha.3";
+                  # 'nix-prefetch-url https://github.com/cue-lang/cue/releases/download/v0.13.0-alpha.3/cue_v0.13.0-alpha.3_darwin_arm64.tar.gz'
                   # https://github.com/NixOS/nixpkgs/blob/54b4bb956f9891b872904abdb632cea85a033ff2/doc/build-helpers/fetchers.chapter.md#update-source-hash-with-the-fake-hash-method
                   sha256 = {
-                    "x86_64-linux" = "0ks2g9k8hnhjyawhn6hpy6nh4s72l5dbv2h5621vgqhsawdkwd4h";
-                    "aarch64-darwin" = "1h25wqddrva7n124gfk75v124x398whvh01whvk7bsbrlh15b3jr";
-                    "x86_64-darwin" = "04nnmqlrhww4mfd9m2zxpk1nyfsgdyrkgsjp349lxp971wnxhy5h";
+                    "x86_64-linux" = "1dnycn6f4nr7gcd7k8rqs2cn05wr3mgbd0dq9q3rkp1i4dshkjak";
+                    "aarch64-darwin" = "0ycj0krgv3jfkylyi9lhhq23wckzxpv7lcmicf310maknpm747iw";
                   }.${system};
                 };
               in

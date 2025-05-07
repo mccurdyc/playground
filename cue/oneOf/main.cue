@@ -4,17 +4,13 @@ package oneOf
 #OneOf: *{} | #A | #B // defaults to "ignore"
 
 #A: {
-	a: "a"
+	a?: string & =~"^a"
 }
 
 #B: {
-	b: "b"
+	b?: string & =~"^b"
 }
 
 #OneOf// ignored
 
-#OneOf & #A
-
-#AOrB: *{aa: "aa"} | {bb: "bb"}
-
-#AOrB
+#OneOf & {a: "aa"}
