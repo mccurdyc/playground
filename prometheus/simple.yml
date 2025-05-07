@@ -1,3 +1,4 @@
+---
 tests:
   - name: ''
     interval: 1m # The interval field within a specific test defines the interval between points provided by your input_series.
@@ -96,3 +97,16 @@ tests:
         exp_samples:
           - labels: '{}'
             value: 2 # critical bug
+      # https://github.com/mccurdyc/playground/blob/431f71fc59edcdb5a398d88f6947ffe7c3b7063e/envoy/prometheus/envoy_anomaly_rps.yaml#L15-L18
+      # It's CRITICAL for this all to work that we define all of these as recording
+      # rules because recording rules ... with metric labels. 
+      - expr: |
+          max(
+            (metric_1 * on() group_left 1)
+            or
+            (metric_1 * on() group_left 2)
+          )
+        eval_time: 1m
+        exp_samples:
+          - labels: '{}'
+            value: 1 # critical; you expect 2 > 1, but that's not how "or" works.
