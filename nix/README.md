@@ -88,7 +88,11 @@ nix-instantiate --eval derivation.nix
 
 ### flake
 
+- https://nix.dev/concepts/flakes.html
+- Always adhere to this format - https://nix.dev/manual/nix/2.24/command-ref/new-cli/nix3-flake.html#flake-format
+
 ```bash
 nix run
 nix run '.#default'
+nix run 'github:mccurdyc/playground?dir=nix#default'
 ```

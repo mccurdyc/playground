@@ -1,13 +1,14 @@
 # nix run '.#default'
 # or; nix run
 # https://github.com/DeterminateSystems/zero-to-nix/blob/main/flake.nix
+# https://nix.dev/manual/nix/2.24/command-ref/new-cli/nix3-flake.html#flake-format
 {
   description = "something useful";
-  inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  #TODO: https://determinate.systems/posts/flake-schemas/
+  # im not sure i understand the value. the lock-in is high though.
   outputs = { self, nixpkgs }:
-
     let
-      # Systems supported
       allSystems = [
         "x86_64-linux" # 64-bit Intel/AMD Linux
         "aarch64-linux" # 64-bit ARM Linux

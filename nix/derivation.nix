@@ -23,10 +23,16 @@ let
   # pkgs = import <nixpkgs> { };
 
   # https://nix.dev/manual/nix/2.24/language/builtins.html#builtins-fetchTree
+  # nix repl
+  # :b builtins.fetchTree
   pkgsSrc = builtins.fetchTree {
     type = "github";
     owner = "NixOS";
     repo = "nixpkgs";
+    # https://nix.dev/manual/nix/2.29/command-ref/new-cli/nix3-flake#flake-reference-attributes
+    # https://nix.dev/manual/nix/2.29/language/builtins.html?highlight=fetchtree#source-types
+    # ref = "HEAD"; # default HEAD
+    # rev = "<hash>"; # defaults to latest of ref
   };
   pkgs = import pkgsSrc { };
 
