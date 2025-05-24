@@ -85,3 +85,10 @@ nix-instantiate --eval simple-print.nix
 ```bash
 nix-instantiate --eval derivation.nix
 ```
+
+### flake
+
+```bash
+nix run
+nix run '.#default'
+```
