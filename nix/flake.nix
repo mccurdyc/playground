@@ -5,6 +5,9 @@
 {
   description = "something useful";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  # https://lazamar.co.uk/nix-versions/?package=yarn&version=1.22.19&fullName=yarn-1.22.19&keyName=yarn&revision=336eda0d07dc5e2be1f923990ad9fdb6bc8e28e3&channel=nixpkgs-unstable#instructions
+  # nixpkgs-foo.url = "https://github.com/NixOS/nixpkgs/archive/336eda0d07dc5e2be1f923990ad9fdb6bc8e28e3.tar.gz";
+
   #TODO: https://determinate.systems/posts/flake-schemas/
   # im not sure i understand the value. the lock-in is high though.
   outputs = { self, nixpkgs }:
