@@ -1,4 +1,4 @@
-# Usage: nix-instantiate --read-write-mode --eval derivation.nix
+# Usage: nix-instantiate --eval derivation.nix
 #
 # https://nix.dev/manual/nix/2.28/language/derivations.html
 # The most important built-in function is derivation, which is used to describe
@@ -39,13 +39,14 @@ let
     # The temporary directory is removed (unless the -K option was specified).
     # Nix sets the last-modified timestamp on all files in the build result to 1 (00:00:01 1/1/1970 UTC), sets the group to the default group, and sets the mode of the file to 0444 or 0555 (i.e., read-only, with execute permission enabled if the file was originally executable).
     builder = "${pkgs.bash}/bin/bash";
-    args = [ "-c" "echo -n hello > $out" ];
+    args = [ ./builder.sh ]; # this is NOT a string. Nix iterpolates this as a path.
 
     # Default: [ "out" ]
     # Symbolic outputs of the derivation. Each output name is passed to the builder
     # executable as an environment variable with its value set to the corresponding store path.
     outputs = [ "out" ];
     system = builtins.currentSystem;
+    PATH = pkgs.lib.makeBinPath (with pkgs; [ coreutils gcc ]);
   };
 in
 "${builtins.readFile drv} world"
