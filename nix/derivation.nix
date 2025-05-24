@@ -39,7 +39,7 @@ let
     # The temporary directory is removed (unless the -K option was specified).
     # Nix sets the last-modified timestamp on all files in the build result to 1 (00:00:01 1/1/1970 UTC), sets the group to the default group, and sets the mode of the file to 0444 or 0555 (i.e., read-only, with execute permission enabled if the file was originally executable).
     builder = "${pkgs.bash}/bin/bash";
-    args = [ ./builder.sh ]; # this is NOT a string. Nix iterpolates this as a path.
+    args = [ ./builder ]; # this is NOT a string. Nix iterpolates this as a path.
 
     # Default: [ "out" ]
     # Symbolic outputs of the derivation. Each output name is passed to the builder

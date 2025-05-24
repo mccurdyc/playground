@@ -1,0 +1,4 @@
+# no network access in here
+ls -al
+
+echo -n hello >$out
