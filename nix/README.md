@@ -63,6 +63,7 @@ nix-repl> :log pkgs.ripgrep
 nix shell 'github:nixos/nixpkgs/nixos-25.05#k3d'
 nix shell github:nixos/nixpkgs/babcd70c36d0c2e2cb000eb3085aa7a42104a4ba#k3d
 nix shell github:nixos/nixpkgs/nixos-unstable#k3d
+```
 
 ## Notes
 
