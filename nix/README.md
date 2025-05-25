@@ -96,3 +96,8 @@ nix run
 nix run '.#default'
 nix run 'github:mccurdyc/playground?dir=nix#default'
 ```
+
+```bash
+nix run '.#sayHello'
+nix run '.#remoteHello'
+```
