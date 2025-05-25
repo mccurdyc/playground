@@ -1,4 +1,4 @@
-{
+{ system }: {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -8,83 +8,70 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      flake = { };
+  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, ... }:
+    let
+      pkgs = import inputs.nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      pkgs-unstable = import inputs.nixpkgs-unstable {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      # pkgs-foo = import inputs.nixpkgs-foo {
+      #   inherit system;
+      #   config.allowUnfree = true;
+      # };
 
-      systems = [
-        "aarch64-darwin"
-        "x86_64-linux"
+
+      ci_packages = {
+        # Nix
+        nix-fmt = pkgs.nixpkgs-fmt;
+
+        # General
+        inherit (pkgs-unstable) just; # need just >1.33 for working-directory setting
+      };
+
+      packages = (builtins.attrValues ci_packages) ++ [
+        pkgs.statix
+        pkgs.nixpkgs-fmt
+        pkgs-unstable.nil
+        pkgs.hadolint
       ];
-
+    in
+    {
       # This is needed for pkgs-unstable - https://github.com/hercules-ci/flake-parts/discussions/105
-      imports = [ inputs.flake-parts.flakeModules.easyOverlay ];
+      overlayAttrs = { inherit pkgs-unstable; };
 
-      perSystem = { system, ... }:
-        let
-          pkgs = import inputs.nixpkgs {
-            inherit system;
-            config.allowUnfree = true;
-          };
-          pkgs-unstable = import inputs.nixpkgs-unstable {
-            inherit system;
-            config.allowUnfree = true;
-          };
-          # pkgs-foo = import inputs.nixpkgs-foo {
-          #   inherit system;
-          #   config.allowUnfree = true;
-          # };
+      formatter = pkgs.nixpkgs-fmt;
 
-
-          ci_packages = {
+      # https://github.com/cachix/git-hooks.nix
+      # 'nix flake check'
+      checks = {
+        pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
             # Nix
-            nix-fmt = pkgs.nixpkgs-fmt;
+            deadnix.enable = true;
+            nixpkgs-fmt.enable = true;
+            statix.enable = true;
 
-            # General
-            inherit (pkgs-unstable) just; # need just >1.33 for working-directory setting
-          };
-
-          packages = (builtins.attrValues ci_packages) ++ [
-            pkgs.statix
-            pkgs.nixpkgs-fmt
-            pkgs-unstable.nil
-            pkgs.hadolint
-          ];
-        in
-        {
-          # This is needed for pkgs-unstable - https://github.com/hercules-ci/flake-parts/discussions/105
-          overlayAttrs = { inherit pkgs-unstable; };
-
-          formatter = pkgs.nixpkgs-fmt;
-
-          # https://github.com/cachix/git-hooks.nix
-          # 'nix flake check'
-          checks = {
-            pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
-              src = ./.;
-              hooks = {
-                # Nix
-                deadnix.enable = true;
-                nixpkgs-fmt.enable = true;
-                statix.enable = true;
-
-                # Shell
-                shellcheck.enable = true;
-                shfmt = {
-                  enable = true;
-                  entry = "shfmt --simplify --indent 2";
-                };
-              };
+            # Shell
+            shellcheck.enable = true;
+            shfmt = {
+              enable = true;
+              entry = "shfmt --simplify --indent 2";
             };
           };
-
-          packages = ci_packages;
-
-          devShells.default = pkgs.mkShell {
-            inherit (self.checks.${system}.pre-commit-check) shellHook;
-            buildInputs = self.checks.${system}.pre-commit-check.enabledPackages;
-            inherit packages;
-          };
         };
+      };
+
+      packages = ci_packages;
+
+      devShells.default = pkgs.mkShell {
+        inherit (self.checks.${system}.pre-commit-check) shellHook;
+        buildInputs = self.checks.${system}.pre-commit-check.enabledPackages;
+        inherit packages;
+      };
     };
 }
