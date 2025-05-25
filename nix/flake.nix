@@ -35,6 +35,7 @@
 
       # Helper function for scripting
       runPkg = pkgs: pkg: "${pkgs.${pkg}}/bin/${pkg}";
+
     in
     {
       packages = forAllSystems
@@ -54,6 +55,12 @@
       apps = forAllSystems ({ pkgs, system }:
         let
           run = pkg: runPkg pkgs pkg;
+
+          remoteSrc = pkgs.fetchFromGitHub {
+            owner = "mccurdyc";
+            repo = "playground";
+            # rev is latest by default
+          };
         in
         {
           default = {
@@ -64,6 +71,11 @@
           sayHello = {
             type = "app";
             program = "${self.packages.${system}.sayHello}/bin/sayHello";
+          };
+
+          remoteHello = pkgs.callPackage "${remoteSrc}/nix/common/hello.nix" {
+            inherit pkgs;
+            name = "motloc";
           };
         });
     };
