@@ -39,12 +39,12 @@
       packages = forAllSystems
         ({ pkgs, system }: {
           # https://nixos.org/manual/nixpkgs/stable/#chap-trivial-builders
-          sayHello = name: pkgs.writeShellApplication
+          sayHello = pkgs.writeShellApplication
             {
               name = "sayHello";
               runtimeInputs = [ pkgs.bash ];
               text = ''
-                echo "Hello, ${name}"
+                echo "Hello, $1"
               '';
             };
         });
@@ -68,7 +68,7 @@
 
           sayHello = {
             type = "app";
-            program = "${self.packages.${system}.sayHello "motloc"}/bin/sayHello";
+            program = "${self.packages.${system}.sayHello}/bin/sayHello";
           };
 
           remoteHello = {
