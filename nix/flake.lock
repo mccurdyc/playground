@@ -1,17 +1,5 @@
 {
   "nodes": {
-    "common": {
-      "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-P8bjYH8M/9Pg2PsQOV20GjxEA1O96SO/ISOk/XdDc9A=",
-        "path": "./common",
-        "type": "path"
-      },
-      "original": {
-        "path": "./common",
-        "type": "path"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1747953325,
@@ -30,7 +18,6 @@
     },
     "root": {
       "inputs": {
-        "common": "common",
         "nixpkgs": "nixpkgs"
       }
     }

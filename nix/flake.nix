@@ -5,18 +5,17 @@
 {
   description = "something useful";
   inputs = {
+    # These must be flakes
+
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     # https://lazamar.co.uk/nix-versions/?package=yarn&version=1.22.19&fullName=yarn-1.22.19&keyName=yarn&revision=336eda0d07dc5e2be1f923990ad9fdb6bc8e28e3&channel=nixpkgs-unstable#instructions
     # nixpkgs-foo.url = "https://github.com/NixOS/nixpkgs/archive/336eda0d07dc5e2be1f923990ad9fdb6bc8e28e3.tar.gz";
-
-    common.url = "path:./common";
   };
-
 
   #TODO: https://determinate.systems/posts/flake-schemas/
   # im not sure i understand the value. the lock-in is high though.
   # https://wiki.nixos.org/wiki/Flakes#Output_schema
-  outputs = { self, nixpkgs, common, ... }:
+  outputs = { self, nixpkgs, ... }:
     let
       allSystems = [
         "x86_64-linux" # 64-bit Intel/AMD Linux
@@ -32,7 +31,6 @@
         pkgs = import nixpkgs { inherit system; };
       });
 
-
       # Helper function for scripting
       runPkg = pkgs: pkg: "${pkgs.${pkg}}/bin/${pkg}";
 
@@ -41,12 +39,12 @@
       packages = forAllSystems
         ({ pkgs, system }: {
           # https://nixos.org/manual/nixpkgs/stable/#chap-trivial-builders
-          sayHello = pkgs.writeShellApplication
+          sayHello = name: pkgs.writeShellApplication
             {
               name = "sayHello";
               runtimeInputs = [ pkgs.bash ];
               text = ''
-                echo "${common.lib.sayHello "motloc"}"
+                echo "Hello, ${name}"
               '';
             };
         });
@@ -56,10 +54,10 @@
         let
           run = pkg: runPkg pkgs pkg;
 
-          remoteSrc = pkgs.fetchFromGitHub {
-            owner = "mccurdyc";
-            repo = "playground";
-            # rev is latest by default
+          common = builtins.fetchGit {
+            url = "ssh://git@github.com/mccurdyc/playground.git";
+            # NOTE: you have to give it a commit for hermetic builds, you CANNOT use a branch name.
+            rev = "6da84fffe8d054c36d5de7c40094af9e61ee8911";
           };
         in
         {
@@ -70,12 +68,15 @@
 
           sayHello = {
             type = "app";
-            program = "${self.packages.${system}.sayHello}/bin/sayHello";
+            program = "${self.packages.${system}.sayHello "motloc"}/bin/sayHello";
           };
 
-          remoteHello = pkgs.callPackage "${remoteSrc}/nix/common/hello.nix" {
-            inherit pkgs;
-            name = "motloc";
+          remoteHello = {
+            type = "app";
+            program = "${pkgs.callPackage "${common}/nix/common/hello.nix" {
+              inherit pkgs;
+              name = "motloc";
+            }}/bin/sayHello";
           };
         });
     };
