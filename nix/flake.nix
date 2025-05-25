@@ -16,7 +16,7 @@
   #TODO: https://determinate.systems/posts/flake-schemas/
   # im not sure i understand the value. the lock-in is high though.
   # https://wiki.nixos.org/wiki/Flakes#Output_schema
-  outputs = { self, nixpkgs, common }:
+  outputs = { self, nixpkgs, common, ... }:
     let
       allSystems = [
         "x86_64-linux" # 64-bit Intel/AMD Linux
@@ -25,29 +25,46 @@
         "aarch64-darwin" # 64-bit ARM macOS
       ];
 
+      # You should use flake-parts (or; flake-utils) instead of this, but I'm explicitly trying not to.
       forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
+        # These get passed to whatever function you define
+        inherit system;
         pkgs = import nixpkgs { inherit system; };
       });
+
 
       # Helper function for scripting
       runPkg = pkgs: pkg: "${pkgs.${pkg}}/bin/${pkg}";
     in
     {
-      apps = forAllSystems
-        ({ pkgs }:
-          let
-            run = pkg: runPkg pkgs pkg;
-          in
-          {
-            default = {
-              type = "app";
-              program = "${run "hello"}";
+      packages = forAllSystems
+        ({ pkgs, system }: {
+          # https://nixos.org/manual/nixpkgs/stable/#chap-trivial-builders
+          sayHello = pkgs.writeShellApplication
+            {
+              name = "sayHello";
+              runtimeInputs = [ pkgs.bash ];
+              text = ''
+                echo "${common.lib.sayHello "motloc"}"
+              '';
             };
+        });
 
-            sayHello = {
-              type = "app";
-              program = "echo -n ${common.lib.sayHello "motloc"}";
-            };
-          });
+      # https://nix.dev/manual/nix/2.24/command-ref/new-cli/nix3-run.html#apps
+      apps = forAllSystems ({ pkgs, system }:
+        let
+          run = pkg: runPkg pkgs pkg;
+        in
+        {
+          default = {
+            type = "app";
+            program = "${run "hello"}";
+          };
+
+          sayHello = {
+            type = "app";
+            program = "${self.packages.${system}.sayHello}/bin/sayHello";
+          };
+        });
     };
 }
