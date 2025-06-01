@@ -53,8 +53,7 @@
 
       # 1/ nix eval --impure '.#nixosConfigurations.x86_64-linux.vm' --apply builtins.attrNames
       # 2/ nix eval --impure '.#nixosConfigurations.x86_64-linux.vm.config.system.build.vm' --apply builtins.attrValues
-      # 3/ nix build '.#nixosConfigurations.x86_64-linux.vm.config.system.build.vm'
-      # 4/ QEMU_KERNEL_PARAMS=console=ttyS0 ./result/bin/run-nixos-vm -nographic; reset
+      # 3/ QEMU_KERNEL_PARAMS=console=ttyS0 $(nix build --print-out-paths '.#nixosConfigurations.x86_64-linux.vm.config.system.build.vm')/bin/run-nixos-vm -nographic; reset
       nixosConfigurations = forAllSystems
         ({ system, ... }: {
           vm = nixpkgs.lib.nixosSystem {
