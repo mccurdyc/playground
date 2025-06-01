@@ -20,7 +20,6 @@
       allSystems = [
         "x86_64-linux" # 64-bit Intel/AMD Linux
         "aarch64-linux" # 64-bit ARM Linux
-        "x86_64-darwin" # 64-bit Intel macOS
         "aarch64-darwin" # 64-bit ARM macOS
       ];
 
@@ -34,10 +33,40 @@
       # Helper function for scripting
       runPkg = pkgs: pkg: "${pkgs.${pkg}}/bin/${pkg}";
 
+      isoConfig = "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix";
     in
     {
+      # https://nix.dev/tutorials/nixos/nixos-configuration-on-vm.html
+      # 1/ nix develop '.#builder'
+      # 2/ nixos-generate-config --dir ./vm-config
+      # 3/ remove hard-configuration things
+      devShells = forAllSystems
+        ({ pkgs, system }:
+          let
+            nixos = pkgs.nixos isoConfig;
+          in
+          {
+            builder = pkgs.mkShell {
+              buildInputs = [ nixos.config.system.build.nixos-generate-config ];
+            };
+          });
+
+      # 1/ nix eval --impure '.#nixosConfigurations.x86_64-linux.vm' --apply builtins.attrNames
+      # 2/ nix eval --impure '.#nixosConfigurations.x86_64-linux.vm.config.system.build.vm' --apply builtins.attrValues
+      # 3/ nix build '.#nixosConfigurations.x86_64-linux.vm.config.system.build.vm'
+      # 4/ QEMU_KERNEL_PARAMS=console=ttyS0 ./result/bin/run-nixos-vm -nographic; reset
+      nixosConfigurations = forAllSystems
+        ({ system, ... }: {
+          vm = nixpkgs.lib.nixosSystem {
+            inherit system;
+            modules = [
+              ./vm-config/configuration.nix
+            ];
+          };
+        });
+
       packages = forAllSystems
-        ({ pkgs, system }: {
+        ({ pkgs, ... }: {
           # https://nixos.org/manual/nixpkgs/stable/#chap-trivial-builders
           sayHello = pkgs.writeShellApplication
             {
