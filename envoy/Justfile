@@ -34,5 +34,6 @@ k3d-delete:
     k3d cluster delete tilt
 
 # Starts Tilt
-tilt-up:
-    tilt up --host 0.0.0.0
+[no-quiet]
+tilt-up args="":
+    tilt --host 0.0.0.0 up {{ args }}

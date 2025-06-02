@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     flake-parts.url = "github:hercules-ci/flake-parts";
@@ -49,6 +49,7 @@
             # Kubernetes
             pkgs.k3d
             pkgs.kubernetes-helm
+            pkgs.kubernetes
             pkgs.tilt
           ];
         in
@@ -79,7 +80,7 @@
                 yamlfmt = {
                   enable = true;
                   # https://github.com/google/yamlfmt/blob/main/docs/config-file.md#basic-formatter
-                  entry = "yamlfmt -formatter indent=2,include_document_start=true,retain_line_breaks=true -w -dstar **/*.{yaml,yml}";
+                  entry = "yamlfmt -formatter indent=2,include_document_start=true,retain_line_breaks=true";
                 };
               };
             };

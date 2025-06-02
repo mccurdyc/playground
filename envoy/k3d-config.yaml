@@ -1,5 +1,5 @@
-apiVersion: k3d.io/v1alpha3
+---
+apiVersion: k3d.io/v1alpha5
 kind: Simple
-name: tilt
 servers: 1
 agents: 0

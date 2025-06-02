@@ -1,4 +1,5 @@
 # Ref - https://docs.tilt.dev/tiltfile_authoring
+# https://docs.tilt.dev/api.html#functions
 
 # Load Kubernetes manifest
 k8s_yaml("k8s/envoy.yaml")
@@ -15,8 +16,28 @@ configmap_create('envoy-config', from_file=['minimal-envoy-config.yaml=./minimal
 # Add Reloader Helm Repo
 load('ext://helm_resource', 'helm_resource', 'helm_repo')
 helm_repo('stakater', 'https://stakater.github.io/stakater-charts')
-helm_resource('reloader', 'stakater/reloader', )
+helm_resource('reloader', 'stakater/reloader')
 
 # Define dependencies to ensure resources come up in the right order.
 # https://docs.tilt.dev/resource_dependencies
 k8s_resource('reloader', resource_deps=['stakater'])
+
+# https://docs.tilt.dev/tiltfile_config.html#run-a-defined-set-of-services
+# https://docs.tilt.dev/tiltfile_config.html#grouping-services-in-web-ui
+config.define_string_list("to-run", args=True)
+cfg = config.parse()
+
+groups = {
+  'base': ['reloader', 'stakater'],
+  'envoy': ['envoy'],
+}
+
+resources = []
+for arg in cfg.get('to-run', []):
+  if arg in groups:
+    resources += groups[arg]
+  else:
+    # also support specifying individual services instead of groups, e.g. `tilt up a b d`
+    resources.append(arg)
+
+config.set_enabled_resources(resources)
