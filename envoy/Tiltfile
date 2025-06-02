@@ -1,39 +1,68 @@
 # Ref - https://docs.tilt.dev/tiltfile_authoring
 # https://docs.tilt.dev/api.html#functions
 
-# Load Kubernetes manifest
+# "import" extensions
+load("ext://configmap", "configmap_create")
+load("ext://helm_resource", "helm_resource", "helm_repo")
+# https://blog.tilt.dev/2021/06/30/namespace-flag.html
+load("ext://namespace", "namespace_create", "namespace_inject")
+
+# https://docs.tilt.dev/api.html#api.k8s_namespace
+if k8s_namespace() == 'default':
+  fail("failing early to avoid deploying to 'default' namespace")
+
+if k8s_context() == 'prod':
+  fail("failing early to avoid overwriting prod")
+
+# https://blog.tilt.dev/2021/06/30/namespace-flag.html
+# https://github.com/tilt-dev/tilt-extensions/tree/master/namespace
+namespace_create(name="playground")
+
+# https://github.com/stakater/Reloader
+# A Kubernetes controller to watch changes in ConfigMap and Secrets and do rolling
+# upgrades on Pods with their associated Deployment, StatefulSet, DaemonSet and DeploymentConfig
+#
+# https://github.com/tilt-dev/tilt-extensions/blob/master/helm_resource/README.md#helm_repo
+# Installs the helm repo on "tilt up"
+helm_repo(name="stakater", url="https://stakater.github.io/stakater-charts")
+# https://github.com/tilt-dev/tilt-extensions/tree/master/helm_resource
+helm_resource(name="reloader", chart="stakater/reloader", namespace="default")
+k8s_resource("reloader", resource_deps=["stakater"])
+
+# Envoy
 k8s_yaml("k8s/envoy.yaml")
-
-# Expose Envoy admin interface & service ports
 k8s_resource("envoy", port_forwards=[9901, 10000], auto_init=True)
+configmap_create(name="envoy-config", from_file=["minimal-envoy-config.yaml=./minimal-envoy-config.yaml"], watch=True)
 
-# Load the configmap tilt extension
-load('ext://configmap', 'configmap_create')
+# Envoy Gateway
+# https://gateway.envoyproxy.io/docs/tasks/quickstart/#installation
+helm_repo(name="envoy-gateway", url="oci://docker.io/envoyproxy/gateway-helm")
+helm_resource(name="envoy-gateway-chart", chart="oci://docker.io/envoyproxy/gateway-helm", release_name="envoy-gateway", namespace="envoy-gateway-system", flags=["--version v1.4.0"], pod_readiness="wait")
 
-# Create a config map named 'envoy-config' from the 'minimal-envoy-config.yaml' file.
-configmap_create('envoy-config', from_file=['minimal-envoy-config.yaml=./minimal-envoy-config.yaml'], watch=True)
+# Waits for Envoy Gateway to be ready
+# https://docs.tilt.dev/api.html#api.local_resource
+local_resource(name="wait-envoy-gateway", cmd='kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available')
 
-# Add Reloader Helm Repo
-load('ext://helm_resource', 'helm_resource', 'helm_repo')
-helm_repo('stakater', 'https://stakater.github.io/stakater-charts')
-helm_resource('reloader', 'stakater/reloader')
-
-# Define dependencies to ensure resources come up in the right order.
-# https://docs.tilt.dev/resource_dependencies
-k8s_resource('reloader', resource_deps=['stakater'])
-
+# Enable subsets of resources; defaults to "base envoy" in the Justfile
+#
 # https://docs.tilt.dev/tiltfile_config.html#run-a-defined-set-of-services
 # https://docs.tilt.dev/tiltfile_config.html#grouping-services-in-web-ui
 config.define_string_list("to-run", args=True)
 cfg = config.parse()
 
 groups = {
-  'base': ['reloader', 'stakater'],
-  'envoy': ['envoy'],
+  "base": ["reloader"],
+  "envoy": ["envoy"],
+  "gateway": [
+    "envoy", 
+    "envoy-gateway",
+    "envoy-gateway-chart",
+    "wait-envoy-gateway"
+  ],
 }
 
 resources = []
-for arg in cfg.get('to-run', []):
+for arg in cfg.get("to-run", []):
   if arg in groups:
     resources += groups[arg]
   else:
