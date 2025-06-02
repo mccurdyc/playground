@@ -35,5 +35,5 @@ k3d-delete:
 
 # Starts Tilt
 [no-quiet]
-tilt-up args="":
-    tilt --host 0.0.0.0 up {{ args }}
+tilt-up args="base":
+    tilt </dev/null >/dev/null --host 0.0.0.0 up {{ args }} &
