@@ -22,18 +22,23 @@ k3d-init:
     k3d cluster create --config k3d-config.yaml
 
 # Stop the k3d cluster
-k3d-stop:
-    k3d cluster stop tilt
+k3d-stop: tilt-down
+    k3d cluster stop k3s-default
 
 # Resume the k3d cluster
 k3d-start:
-    k3d cluster start tilt
+    k3d cluster start k3s-default
 
 # Delete the k3d cluster
-k3d-delete:
-    k3d cluster delete tilt
+k3d-delete: tilt-down
+    k3d cluster delete k3s-default
 
 # Starts Tilt
 [no-quiet]
 tilt-up args="base envoy gateway":
     tilt </dev/null >/dev/null --host 0.0.0.0 up --namespace=playground --context=k3d-k3s-default {{ args }} &
+
+# Tears Tilt down
+[no-quiet]
+tilt-down:
+    tilt down --namespace=playground && pkill tilt

@@ -4,6 +4,8 @@
 # "import" extensions
 load("ext://configmap", "configmap_create")
 load("ext://helm_resource", "helm_resource", "helm_repo")
+# https://github.com/tilt-dev/tilt-extensions/tree/master/helm_remote
+load('ext://helm_remote', 'helm_remote')
 # https://blog.tilt.dev/2021/06/30/namespace-flag.html
 load("ext://namespace", "namespace_create", "namespace_inject")
 
@@ -36,12 +38,33 @@ configmap_create(name="envoy-config", from_file=["minimal-envoy-config.yaml=./mi
 
 # Envoy Gateway
 # https://gateway.envoyproxy.io/docs/tasks/quickstart/#installation
-helm_repo(name="envoy-gateway", url="oci://docker.io/envoyproxy/gateway-helm")
-helm_resource(name="envoy-gateway-chart", chart="oci://docker.io/envoyproxy/gateway-helm", release_name="envoy-gateway", namespace="envoy-gateway-system", flags=["--version v1.4.0"], pod_readiness="wait")
+# https://gateway.envoyproxy.io/docs/install/install-helm/
+#
+# Cant use helm_repo for OCI artifacts
+# https://github.com/tilt-dev/tilt-extensions/tree/master/helm_remote
+# equivalent to 'helm repo add'
+#
+# Pull - 'helm pull oci://docker.io/envoyproxy/gateway-helm --version v1.4.1 --untar --untardir ./charts' to get the default values file
+# Runs - 'helm template gateway-helm /home/mccurdyc/.local/share/tilt-dev/.helm/oci/docker.io/envoyproxy/v1.4.1/gateway-helm --namespace envoy-gateway-system --include-crds --values ./envoy-gateway.yaml'
+#
+# https://docs.tilt.dev/api.html#api.helm
+# https://docs.tilt.dev/helm.html
+# https://gateway.envoyproxy.io/docs/install/install-helm/
+# Ports - https://gateway.envoyproxy.io/docs/install/install-helm/#open-ports
+# https://gateway.envoyproxy.io/docs/troubleshooting/envoy-proxy-admin-interface/
+# - Admin - 0.0.0.0:19000
+# - XDS - 0.0.0.0:18000
+helm_remote('gateway-helm',
+  repo_name='oci://docker.io/envoyproxy',
+  version='v1.4.1',
+  namespace='envoy-gateway-system',
+  values='./envoy-gateway.yaml'
+  # set=''
+)
 
 # Waits for Envoy Gateway to be ready
 # https://docs.tilt.dev/api.html#api.local_resource
-local_resource(name="wait-envoy-gateway", cmd='kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available')
+local_resource(name="wait-envoy-gateway", cmd='kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available', resource_deps=['envoy-gateway'])
 
 # Enable subsets of resources; defaults to "base envoy" in the Justfile
 #
@@ -56,7 +79,6 @@ groups = {
   "gateway": [
     "envoy", 
     "envoy-gateway",
-    "envoy-gateway-chart",
     "wait-envoy-gateway"
   ],
 }
