@@ -18,16 +18,15 @@ import './prometheus/Justfile'
 
 # Inititalize the k3d cluster if it does not already exist
 k3d-init:
-    # k3d cluster get tilt || k3d cluster create --config k3d-config.yaml
-    k3d cluster create --config k3d-config.yaml
+    k3d cluster get k3s-default || k3d cluster create --config k3d-config.yaml
 
 # Stop the k3d cluster
 k3d-stop: tilt-down
     k3d cluster stop k3s-default
 
 # Resume the k3d cluster
-k3d-start:
-    k3d cluster start k3s-default
+k3d-start: k3d-init
+    k3d cluster get k3s-default || k3d cluster start k3s-default
 
 # Delete the k3d cluster
 k3d-delete: tilt-down
@@ -35,7 +34,7 @@ k3d-delete: tilt-down
 
 # Starts Tilt
 [no-quiet]
-tilt-up args="base envoy gateway":
+tilt-up args="base envoy gateway": k3d-start
     tilt </dev/null >/dev/null --host 0.0.0.0 up --namespace=playground --context=k3d-k3s-default {{ args }} &
 
 # Tears Tilt down
