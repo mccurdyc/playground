@@ -115,7 +115,7 @@ config:
         default: info
     extensionApis: {}
 
-createNamespace: true
+createNamespace: false
 
 kubernetesClusterDomain: cluster.local
 

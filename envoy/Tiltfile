@@ -38,33 +38,36 @@ configmap_create(name="envoy-config", from_file=["minimal-envoy-config.yaml=./mi
 
 # Envoy Gateway
 # https://gateway.envoyproxy.io/docs/tasks/quickstart/#installation
+# Manually installing - helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.4.1 -n envoy-gateway-system --create-namespace
 # https://gateway.envoyproxy.io/docs/install/install-helm/
 #
 # Cant use helm_repo for OCI artifacts
 # https://github.com/tilt-dev/tilt-extensions/tree/master/helm_remote
-# equivalent to 'helm repo add'
 #
 # Pull - 'helm pull oci://docker.io/envoyproxy/gateway-helm --version v1.4.1 --untar --untardir ./charts' to get the default values file
-# Runs - 'helm template gateway-helm /home/mccurdyc/.local/share/tilt-dev/.helm/oci/docker.io/envoyproxy/v1.4.1/gateway-helm --namespace envoy-gateway-system --include-crds --values ./envoy-gateway.yaml'
 #
-# https://docs.tilt.dev/api.html#api.helm
-# https://docs.tilt.dev/helm.html
-# https://gateway.envoyproxy.io/docs/install/install-helm/
 # Ports - https://gateway.envoyproxy.io/docs/install/install-helm/#open-ports
 # https://gateway.envoyproxy.io/docs/troubleshooting/envoy-proxy-admin-interface/
 # - Admin - 0.0.0.0:19000
 # - XDS - 0.0.0.0:18000
 helm_remote('gateway-helm',
+  release_name='eg',
   repo_name='oci://docker.io/envoyproxy',
   version='v1.4.1',
   namespace='envoy-gateway-system',
-  values='./envoy-gateway.yaml'
+  values='./envoy-gateway.yaml',
+  create_namespace='true'
+  # install_crds='true' # leads to a failure in "gateway-helm-crds-install" tilt resource related to kubectl apply validation
   # set=''
 )
 
 # Waits for Envoy Gateway to be ready
 # https://docs.tilt.dev/api.html#api.local_resource
-local_resource(name="wait-envoy-gateway", cmd='kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available', resource_deps=['envoy-gateway'])
+local_resource(name="wait-envoy-gateway", cmd='''
+  kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available
+''',
+resource_deps=['envoy-gateway']
+)
 
 # Enable subsets of resources; defaults to "base envoy" in the Justfile
 #
@@ -79,6 +82,7 @@ groups = {
   "gateway": [
     "envoy", 
     "envoy-gateway",
+    "eg-gateway-helm-certgen",
     "wait-envoy-gateway"
   ],
 }
