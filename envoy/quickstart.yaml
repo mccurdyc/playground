@@ -1,4 +1,6 @@
 ---
+# https://gateway.envoyproxy.io/docs/concepts/concepts_overview/
+# Defines a class of Gateways with common configuration.
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
@@ -7,6 +9,7 @@ metadata:
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
 ---
+# Specifies how traffic can enter the cluster.
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:

@@ -49,6 +49,7 @@
             # Kubernetes
             pkgs.k3d
             pkgs.k9s
+            pkgs.kubie
             pkgs.kubernetes-helm
             pkgs.kubernetes
             pkgs.tilt

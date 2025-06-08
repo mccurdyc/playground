@@ -9,6 +9,7 @@
 
 set shell := ["/usr/bin/env", "bash", "-uc"]
 
+shell := "/usr/bin/env bash"
 log := "warn"
 export JUST_LOG := log
 
@@ -41,3 +42,12 @@ tilt-up args="base envoy gateway": k3d-start
 [no-quiet]
 tilt-down:
     tilt down --namespace=playground && pkill tilt
+
+port-forward-gateway ports:
+    #!{{ shell }}
+      d="$(kubectl get deploy \
+        -n envoy-gateway-system \
+        --selector=gateway.envoyproxy.io/owning-gateway-name=eg \
+        -o jsonpath='{.items[0].metadata.name}')"
+
+      kubectl port-forward "deploy/${d}" -n envoy-gateway-system --address 0.0.0.0 {{ ports }}
