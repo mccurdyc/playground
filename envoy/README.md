@@ -9,6 +9,8 @@
     - k3d - https://k3d.io/
     - helm - https://helm.sh/
     - tilt - https://tilt.dev/
+    - (optional) egctl - `mkdir -p /usr/local/bin && export EGCTL_INSTALL_DIR=/usr/local/bin; curl -fsSL https://gateway.envoyproxy.io/get-egctl.sh | VERSION=latest bash`
+        - It's a CLI for the XDS server
 
 2. Run `just tilt-up`
 

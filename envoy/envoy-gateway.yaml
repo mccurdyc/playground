@@ -1,5 +1,6 @@
 ---
 # https://gateway.envoyproxy.io/docs/install/gateway-helm-api/
+# https://github.com/envoyproxy/gateway/tree/main/charts/gateway-helm/templates
 # Global settings
 global:
   # If set, these take highest precedence and change both envoyGateway and ratelimit's container registry and pull secrets.
@@ -68,9 +69,6 @@ deployment:
     - name: wasm
       port: 18002
       targetPort: 18002
-    - name: admin
-      port: 19000
-      targetPort: 19000
     - name: metrics
       port: 19001
       targetPort: 19001
@@ -100,11 +98,13 @@ hpa:
 
 # https://gateway.envoyproxy.io/docs/api/extension_types/#envoygateway
 config:
+  # https://github.com/envoyproxy/gateway
+  # This is the Gateway controller config
   envoyGateway:
     # https://gateway.envoyproxy.io/docs/api/extension_types/#envoygatewayadmin
     admin:
       address:
-        host: "0.0.0.0"
+        host: "127.0.0.1"
         port: 19000
     gateway:
       controllerName: gateway.envoyproxy.io/gatewayclass-controller
