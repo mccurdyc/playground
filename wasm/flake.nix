@@ -20,7 +20,6 @@
 
       systems = [
         "aarch64-darwin"
-        "x86_64-darwin"
         "x86_64-linux"
       ];
 
@@ -75,7 +74,9 @@
                   name = "just-test";
                   entry = "just test";
                   stages = [ "pre-commit" ];
-                  pass_filenames = false;
+                  files = "^wasm/"; # what tells it to "run" in the wasm/ subdir
+                  language = "system";
+                  pass_filenames = true; #  passing only staged files
                 };
 
                 just-lint = {
@@ -83,7 +84,9 @@
                   name = "just-lint";
                   entry = "just lint";
                   stages = [ "pre-commit" ];
-                  pass_filenames = false;
+                  files = "^wasm/"; # what tells it to "run" in the wasm/ subdir
+                  language = "system";
+                  pass_filenames = true; # passing only staged files
                 };
 
                 # Nix

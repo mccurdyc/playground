@@ -45,6 +45,7 @@
           };
 
           packages = (builtins.attrValues ci_packages) ++ [
+            pkgs.just
             pkgs.statix
             pkgs.nixpkgs-fmt
             pkgs-unstable.nil
