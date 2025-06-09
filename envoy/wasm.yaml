@@ -1,0 +1,24 @@
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: hello
+  namespace: playground
+# https://gateway.envoyproxy.io/docs/api/extension_types/#envoyextensionpolicyspec
+spec:
+  targetSelectors:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute # TODO
+      name: backend
+
+  # https://gateway.envoyproxy.io/docs/api/extension_types/#wasm
+  wasm:
+    - name: hello
+      # RootID is a unique ID for a set of extensions in a VM which will share a
+      # RootContext and Contexts if applicable (e.g., an Wasm HttpFilter and an Wasm AccessLog).
+      # If left blank, all extensions with a blank root_id with the same vm_id will share Context(s).
+      # Note: RootID must match the root_id parameter used to register the Context in the Wasm code.
+      rootID: hello-ctx
+      code:
+        type: Image
+        image: todo
