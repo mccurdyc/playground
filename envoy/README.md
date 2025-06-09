@@ -1,5 +1,10 @@
 # Playground
 
+`envoy-gateway` pod is the gateway controller / Envoy XDS server / Envoy control plane.
+
+Then there are Envoy proxy instances `envoy-playground-hello` that get their configuration
+from the Envoy control plane.
+
 ## Getting Started with Local Kubernetes
 
 ### Quickstart
