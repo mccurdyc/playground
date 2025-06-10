@@ -23,3 +23,10 @@ d: #C & {a: "d"}
 }
 f: #D
 g: #D & {b: ["b"]}
+
+#multiplematchones: matchN(1, [#A, #B])
+#F: {
+	#multiplematchones
+	foo: *"baz" | "bar"
+}
+e: #F & {a: "a"}
