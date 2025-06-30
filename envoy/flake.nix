@@ -15,19 +15,49 @@
         "x86_64-linux"
       ];
 
-      # This is needed for pkgs-unstable - https://github.com/hercules-ci/flake-parts/discussions/105
-      imports = [ inputs.flake-parts.flakeModules.easyOverlay ];
-
       perSystem = { system, ... }:
         let
           pkgs = import inputs.nixpkgs {
             inherit system;
             config.allowUnfree = true;
+
+            overlays = [
+              (self: super: {
+
+                # We use overrideDerivation even though it's strongly advised against in the nixpkgs
+                # manual because we need to override nativeBuildInputs with dependencies that are
+                # not fetchable during build time and since nativeBuildInputs is not exposed
+                # via nixpkgs/envoy, we can't use overrideAttrs or override.
+                #
+                # Evaluates a derivation before modifying it
+                #
+                # The function overrideDerivation creates a new derivation based on an existing one by overriding the original’s attributes with the attribute set produced by the specified function. This function is available on all derivations defined using the makeOverridable function. Most standard derivation-producing functions, such as stdenv.mkDerivation, are defined using this function, which means most packages in the nixpkgs expression, pkgs, have this function.
+                envoy = super.envoy.overrideDerivation (oldAttrs: {
+                  stdenv = super.stdenv;
+
+                  nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
+                    pkgs.wasmtime
+                  ];
+
+                  #patches = [
+                  # Something that replaces Bazel's com_github_wasmtime so that bazel doesnt try to install inside
+                  # the build vm and instead uses either pkg.wasmtime if it
+                  # just needs a binary OR we'll have to use fetchFromGitHub and
+                  # probably put in the bazel build dir.
+                  #];
+
+                  wasmRuntime = "wasmtime";
+                });
+              })
+            ];
           };
-          pkgs-unstable = import inputs.nixpkgs-unstable {
-            inherit system;
-            config.allowUnfree = true;
-          };
+
+          pkgs-unstable = import
+            inputs.nixpkgs-unstable
+            {
+              inherit system;
+              config.allowUnfree = true;
+            };
 
           ci_packages = {
             # Nix
@@ -53,12 +83,11 @@
             pkgs.kubernetes-helm
             pkgs.kubernetes
             pkgs.tilt
+
+            pkgs.envoy
           ];
         in
         {
-          # This is needed for pkgs-unstable - https://github.com/hercules-ci/flake-parts/discussions/105
-          overlayAttrs = { inherit pkgs-unstable; };
-
           formatter = pkgs.nixpkgs-fmt;
 
           # https://github.com/cachix/git-hooks.nix
@@ -88,7 +117,9 @@
             };
           };
 
-          packages = ci_packages;
+          packages = {
+            default = pkgs.envoy;
+          };
 
           devShells.default = pkgs.mkShell {
             inherit (self.checks.${system}.pre-commit-check) shellHook;
