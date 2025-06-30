@@ -37,12 +37,14 @@
             inherit system overlays;
             config.allowUnfree = true;
           };
+          buildTarget = "wasm32-unknown-unknown";
           # v = "1.80.1";
           v = "latest";
           rustChannel = "stable";
           # rustChannel = nightly
           # rustChannel = beta
           pinnedRust = pkgs.rust-bin.${rustChannel}.${v}.default.override {
+            targets = [ buildTarget ];
             extensions = [
               "rust-src"
               "rust-analyzer"
@@ -113,10 +115,13 @@
               version = "1.0.0";
               src = pkgs.lib.cleanSource ./.; # the folder with the cargo.toml
               cargoLock.lockFile = ./Cargo.lock;
-              cargoBuildFlags = [ "--bin" "app" ];
+              cargoBuildFlags = [ "--target=${buildTarget}" ];
+              installPhase = ''
+                mkdir -p $out/lib
+                cp target/${buildTarget}/release/*.wasm $out/lib/
+              '';
+
               doCheck = false; # disable so that these can be built independently
-              # https://nixos.org/manual/nixpkgs/stable/#ssec-installCheck-phase
-              doInstallCheck = true; # disable so that these can be built independently
             };
           };
 
@@ -142,10 +147,13 @@
               # Rust
               # NOTES:
               # - Be careful defining rust tools (e.g., clippy) here because
-              # you need to guarantee they use the same Tust version as defined
+              # you need to guarantee they use the same Rust version as defined
               # in rustVersion.
               pkgs.openssl
               pkgs.rust-analyzer
+
+              # WASM
+              pkgs.wasmtime
             ];
           };
         };

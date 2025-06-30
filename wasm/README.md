@@ -5,4 +5,5 @@
 
 ## Getting Started
 
-- https://developer.mozilla.org/en-US/docs/WebAssembly/Guides/Rust_to_Wasm
+- https://wasmtime.dev
+- https://github.com/apoxy-dev/proximal

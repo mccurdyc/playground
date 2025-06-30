@@ -1,7 +1,14 @@
 [package]
 name = "app"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+
+[lib]
+path = "src/lib.rs"
+# essential for compiling to a dynamic library, which is required for WASM output.
+# https://github.com/rust-lang/rfcs/blob/master/text/1510-cdylib.md
+crate-type = ["cdylib"]
 
 [dependencies]
-clap = { version = "4.5.8", features = ["derive"] }
+log = "0.4"
+proxy-wasm = "0.2.3"
