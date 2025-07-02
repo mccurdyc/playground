@@ -24,7 +24,7 @@
             repo = "wasmtime";
             # 24.0.2 - https://github.com/bytecodealliance/wasmtime/releases/tag/v24.0.2
             rev = "c29a9bb9e23b48a95b0a03f3b90f885ab1252a93";
-            sha256 = "sha256-76a5eedf3d57de8a97492006cfa9c2c5eedf81ad82ba173f0615e85695cecdf7";
+            sha256 = "sha256-pqPyy1evR+qW0fEwIY4EnPDPwB4bKrym3raSs6jezP4=";
           };
 
           pkgs = import inputs.nixpkgs {
