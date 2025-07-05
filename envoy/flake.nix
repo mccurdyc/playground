@@ -51,17 +51,25 @@
                   src = pkgs.applyPatches {
                     inherit (old) src;
 
-                    patches = [
+                    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+                      pkgs.neovim
+                      pkgs.breakpointHook
+                    ];
+
+                    patches = (old.patches or [ ]) ++ [
                       # https://github.com/mccurdyc/envoy/blob/6371b185dee99cd267e61ada6191e97f2406e334/api/bazel/envoy_http_archive.bzl#L4-L9 
                       # Envoy's Bazel WONT fetch repos that are listed in the existing_rules list
                       ./patches/0001-com_github_wasmtime_from_nix.patch
                       ./patches/0001-proxy_wasm_cpp_host_from_nix.patch
                     ];
 
-                    postPatch = ''
+                    postPatch = (old.postPatch or [ ]) + ''
                       # https://nixos.org/manual/nixpkgs/unstable/#fun-substitute
                       substituteInPlace WORKSPACE --subst-var-by com_github_wasmtime_from_nix ${com_github_wasmtime}
                       substituteInPlace WORKSPACE --subst-var-by proxy_wasm_cpp_host_from_nix ${proxy_wasm_cpp_host}
+
+                      # debugging; forces failure and breakpointHook to hit
+                      #false
                     '';
                   };
 
