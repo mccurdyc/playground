@@ -56,20 +56,22 @@
                       pkgs.breakpointHook
                     ];
 
-                    patches = (old.patches or [ ]) ++ [
+                    patches = [
                       # https://github.com/mccurdyc/envoy/blob/6371b185dee99cd267e61ada6191e97f2406e334/api/bazel/envoy_http_archive.bzl#L4-L9 
                       # Envoy's Bazel WONT fetch repos that are listed in the existing_rules list
                       ./patches/0001-com_github_wasmtime_from_nix.patch
                       ./patches/0001-proxy_wasm_cpp_host_from_nix.patch
                     ];
 
-                    postPatch = (old.postPatch or [ ]) + ''
+                    postPatch = ''
                       # https://nixos.org/manual/nixpkgs/unstable/#fun-substitute
                       substituteInPlace WORKSPACE --subst-var-by com_github_wasmtime_from_nix ${com_github_wasmtime}
                       substituteInPlace WORKSPACE --subst-var-by proxy_wasm_cpp_host_from_nix ${proxy_wasm_cpp_host}
 
+                      touch $bazelOut/external/proxy_wasm_cpp_host/WORKSPACE
+
                       # debugging; forces failure and breakpointHook to hit
-                      #false
+                      false
                     '';
                   };
 
