@@ -3,6 +3,7 @@ package read_file
 import (
 	"tool/file"
 	"encoding/yaml"
+	"encoding/json"
 )
 
 command: "read_file": {
@@ -12,17 +13,24 @@ command: "read_file": {
 	read_files: {
 		// CRITICAL You can NOT add `.contents` on the following line. They have to be separate calls.
 		// EX: (file.Read & {...}).contents fails silently
-		foo: (file.Read & {filename: "read_file/in.txt", contents: string}) // you can NOT add .contents on this line, it has to be separate
+		foo: (file.Read & {filename: "read_file/in.json", contents: bytes}) // you can NOT add .contents on this line, it has to be separate
 	}
 
-	write: file.Create & {
-		// CRITICAL this MUST be the full path because we merge the two below.
-		// There is no such thing as "injecting" a value and reading it in the k8s_data.cue
-		// file. You have to merge them at this level.
-		//
-		// This is effectively setting one deeply-nested value.
-		_merged: top_level & {read: "\(read_files.foo.contents)"}
-		filename: "read_file/out.txt"
-		contents: yaml.Marshal(_merged)
+	foo_json: json.Unmarshal(read_files.foo.contents)
+
+	works: file.Create & {
+		filename: "read_file/out.yaml"
+		contents: yaml.Marshal(foo_json)
+	}
+
+	also_works_now: {
+		for _, v in foo_json {
+			for k, v2 in v {
+				"\(k)": file.Create & {
+					filename: "read_file/\(k).yaml"
+					contents: yaml.Marshal({"\(k)": v2})
+				}
+			}
+		}
 	}
 }
