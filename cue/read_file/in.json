@@ -1,11 +1,14 @@
 [
   {
-    "one": 1
+    "name": "one",
+    "version": 1
   },
   {
-    "two": 2
+    "name": "two",
+    "version": 2
   },
   {
-    "three": 3
+    "name": "three",
+    "version": 3
   }
 ]

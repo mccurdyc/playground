@@ -21,17 +21,34 @@ command: "read_file": {
 
 	foo_json: json.Unmarshal(input.contents)
 
+	_list: [for v in foo_json {
+		name:    v.name
+		version: v.version
+	}]
+
 	single_out: file.Create & {
 		filename: "read_file/out.yaml"
-		contents: yaml.Marshal(foo_json)
+		contents: yaml.Marshal(_list)
+	}
+
+	_map: [Name=string]: [Version=string]: {
+		name:    "\(Name)_\(Version)"
+		version: Version
+	}
+
+	for v in foo_json {
+		_map: "\(v.name)": "\(v.version)": {
+			name:    v.name
+			version: v.version
+		}
 	}
 
 	multi_out: {
-		for _, v in foo_json {
-			for k, v2 in v {
-				"\(k)": file.Create & {
-					filename: "read_file/\(k).yaml"
-					contents: yaml.Marshal({"\(k)": v2})
+		for name, version in _map {
+			for _, val in version {
+				"\(val.name)": file.Create & {
+					filename: "read_file/\(val.name).yaml"
+					contents: yaml.Marshal({"\(val.name)": val})
 				}
 			}
 		}
