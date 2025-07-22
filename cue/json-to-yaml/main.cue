@@ -30,7 +30,11 @@ _map: [Name=string]: [Version=string]: {
 }
 
 for v in foo_json {
-	_map: "\(v.name)": "\(v.version)": {}
+	// _map: "\(v.name)": "\(v.version)": {}
+	_map: "\(v.name)": "\(v.version)": {
+		name:    v.name
+		version: v.version
+	}
 }
 
 multi_out: {
