@@ -17,8 +17,12 @@ command: "run": {
 		version: Version
 	}
 
-	for v in in_json {
-		_map: "\(v.name)": "\(v.version)": {}
+	// CRITICAL: _map: {...} MUST be OUTSIDE the for loop. This applies everwhere in the file
+	// in other words, loops MUST be INSIDE some field.
+	_map: {
+		for v in in_json {
+			"\(v.name)": "\(v.version)": {}
+		}
 	}
 
 	out: {
