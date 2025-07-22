@@ -67,12 +67,12 @@
                   inherit system;
                   org = "cue-lang";
                   name = "cue";
-                  version = "v0.14.0-alpha.2";
+                  version = "v0.13.2";
                   # 'nix-prefetch-url https://github.com/cue-lang/cue/releases/download/v0.14.0-alpha.2/cue_v0.14.0-alpha.2_darwin_arm64.tar.gz'
                   # https://github.com/NixOS/nixpkgs/blob/54b4bb956f9891b872904abdb632cea85a033ff2/doc/build-helpers/fetchers.chapter.md#update-source-hash-with-the-fake-hash-method
                   sha256 = {
-                    "x86_64-linux" = "1ra3ajl9si4f2dplhqbc543ngbzjq2igiyw0b129r5qnp0bi16wh";
-                    "aarch64-darwin" = "0k50i3mijp238428lk3ddha73xraa70nja296765m44pmfdlmhi9";
+                    "x86_64-linux" = "1fgg9fggrgm3zvg8ymxvxrimkp5sw8as1m9nrslgzm7mpn3qg953";
+                    "aarch64-darwin" = "0bcf3g11fm5ab9276hk6hh17g8py3s81007g38srjd700x6qd66h";
                   }.${system};
                 };
               in
