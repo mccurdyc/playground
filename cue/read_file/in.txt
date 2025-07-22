@@ -1,2 +1,14 @@
-hello
-world
+[
+  {
+    "name": "one",
+    "version": 1
+  },
+  {
+    "name": "two",
+    "version": 2
+  },
+  {
+    "name": "three",
+    "version": 3
+  }
+]
