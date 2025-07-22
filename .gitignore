@@ -2,3 +2,4 @@
 **_build/
 .pre-commit-config.yaml
 result
+.aider*

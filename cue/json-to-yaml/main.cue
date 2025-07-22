@@ -29,7 +29,6 @@ _map: [Name=string]: [Version=string]: {
 	version: Version
 }
 
-// how can I properly populate this map object? AI?
 for v in foo_json {
 	_map: "\(v.name)": "\(v.version)": {}
 }
