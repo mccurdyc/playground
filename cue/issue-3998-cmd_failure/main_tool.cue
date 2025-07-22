@@ -6,6 +6,8 @@ import (
 	"encoding/yaml"
 )
 
+// https://github.com/cue-lang/cue/issues/3998
+//
 // in.json and in.yaml both just have the following:
 // [1, 2]
 
