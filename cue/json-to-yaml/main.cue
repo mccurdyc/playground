@@ -12,6 +12,10 @@ in: """
 	  "version": 1
 	},
 	{
+	  "name": "one",
+	  "version": 2
+	},
+	{
 	  "name": "two",
 	  "version": 2
 	},
@@ -34,12 +38,12 @@ for v in foo_json {
 }
 
 out: [_=string]: {
-	v: string
+	v: [...string]
 }
 
 for name, versions in _map {
 	for version, val in versions {
-		out: "\(name)": v: "\(name)-\(version)"
+		out: "\(name)": v: ["\(version)"]
 	}
 }
 
