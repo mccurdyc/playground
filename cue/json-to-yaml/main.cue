@@ -25,22 +25,26 @@ in: """
 foo_json: json.Unmarshal(in)
 
 _map: [Name=string]: [Version=string]: {
-	name:    "\(Name)_\(Version)"
+	name:    Name
 	version: Version
 }
 
 for v in foo_json {
-	// _map: "\(v.name)": "\(v.version)": {}
-	_map: "\(v.name)": "\(v.version)": {
-		name:    v.name
-		version: v.version
+	_map: "\(v.name)": "\(v.version)": {}
+}
+
+out: [_=string]: {
+	v: string
+}
+
+for name, versions in _map {
+	for version, val in versions {
+		out: "\(name)": v: "\(name)-\(version)"
 	}
 }
 
 multi_out: {
-	for name, versions in _map {
-		for _, v in versions {
-			"\(v.name)": yaml.Marshal(v)
-		}
+	for name, _ in _map {
+		"\(name)": yaml.Marshal(out[name])
 	}
 }
