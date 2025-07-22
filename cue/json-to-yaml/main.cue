@@ -42,9 +42,9 @@ out: [_=string]: {
 }
 
 for name, versions in _map {
-	for version, val in versions {
-		out: "\(name)": v: ["\(version)"]
-	}
+  out: "\(name)": v: [for version, val in versions {
+    "\(version)"
+  }]
 }
 
 multi_out: {
