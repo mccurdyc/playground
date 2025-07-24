@@ -2,15 +2,16 @@ package main
 
 import (
 	"tool/file"
+	"tool/cli"
 	"encoding/yaml"
 	"encoding/json"
 )
 
 command: "run": {
-	input: file.Read & {filename: "loop_write_files/in.json"}
-	//debug: cli.Print & { text: input.contents }
-
-	in_json: json.Unmarshal(input.contents)
+	input: file.Read & {
+		_in_json: json.Unmarshal(input.contents)
+		filename: "loop_write_files/in.json"
+	}
 
 	_map: [Name=string]: [Version=string]: {
 		name:    Name
@@ -20,7 +21,7 @@ command: "run": {
 	// CRITICAL: _map: {...} MUST be OUTSIDE the for loop. This applies everwhere in the file
 	// in other words, loops MUST be INSIDE some field.
 	_map: {
-		for v in in_json {
+		for v in input._in_json {
 			"\(v.name)": "\(v.version)": {}
 		}
 	}
@@ -35,9 +36,9 @@ command: "run": {
 
 	write: {
 		for name, v in _map {
-			"\(name)": file.Create & {
-				filename: "\(name).yaml"
-				contents: yaml.Marshal(v)
+			"\(name)": cli.Print & {
+				$dep: input.$done
+				text: yaml.Marshal(v)
 			}
 		}
 	}
