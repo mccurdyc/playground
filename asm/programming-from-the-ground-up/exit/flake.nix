@@ -8,13 +8,18 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         nativeBuildInputs = with pkgs; [
+          nasm
+
+          shfmt
+
+          # nix
           deadnix
           statix
           nil
           nixpkgs-fmt
         ];
         # libraries
-        buildInputs = with pkgs; [ ];
+        buildInputs = [ ];
       };
     };
 }

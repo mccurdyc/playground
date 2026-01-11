@@ -51,3 +51,37 @@ referring to the `MOV` instruction.
 ```
 
 And `mod=11` just means this is register mode.
+
+Register Encoding (3 bits):
+The register encoding only needs 3 bits because there are only 8 general-purpose registers in x86:
+- 000 (0) = EAX
+- 001 (1) = ECX
+- 010 (2) = EDX
+- 011 (3) = EBX
+- 100 (4) = ESP
+- 101 (5) = EBP
+- 110 (6) = ESI
+
+The +rd notation means we add the 3-bit register number to the base opcode B8:
+
+B8 (base) = 10111000 in binary
++rd       = +00000xxx (where xxx is the 3-bit register number)
+- 111 (7) = EDI
+
+The _value_ stored in the register is 32-bits, but identifying one of the eight general-purpose registers only takes 3 bits.
+
+# Choosing and Assembler
+
+```
+as exit.s -o exit.o
+
+exit.s:22: Error: ambiguous operand size for `mov'
+exit.s:26: Error: ambiguous operand size for `mov'
+```
+
+Even though you're using 32-bit registers (eax, ebx) which should indicate 32-bit operations,
+GNU Assembler in Intel syntax mode is being conservative about immediate values.
+
+So I need to either use `movl` with ATT syntax or use a less strict assembler, like NASM.
+
+I like strict things, so I think I'd normally choose `movl`, but I want to try nasm.
