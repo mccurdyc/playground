@@ -85,3 +85,100 @@ GNU Assembler in Intel syntax mode is being conservative about immediate values.
 So I need to either use `movl` with ATT syntax or use a less strict assembler, like NASM.
 
 I like strict things, so I think I'd normally choose `movl`, but I want to try nasm.
+
+# Seeing the Machine Code
+
+## objdump (Best Option)
+
+```
+objdump -d exit.o
+
+objdump -D exit.o
+...
+0000000000000000 <_start>:
+   0:   c7 04 25 00 00 00 00    movl   $0x1,0x0
+   7:   01 00 00 00
+   b:   c7 04 25 00 00 00 00    movl   $0x0,0x0
+  12:   00 00 00 00
+  16:   cd 80                   int    $0x80
+...
+```
+
+This doesn't match what I expect. Also, how is it using `movl` when I couldn't even use `movl` directly? Is GAS
+"translating" to ATT syntax? If it is, I'd just write ATT syntax to avoid some confusion. But what I was reading
+was that intel syntax was more commonly used.
+
+The issue what that I had `.intel_syntax` but didn't include `noprefix` and was not using prefixes. Then I could
+also remove the `dword ptr` which was a point of confusion.
+
+```
+0000000000000000 <_start>:
+   0:   b8 01 00 00 00          mov    $0x1,%eax
+   5:   bb 00 00 00 00          mov    $0x0,%ebx
+   a:   cd 80                   int    $0x80
+```
+
+This looks a lot better!
+
+This will show you the disassembly with both machine code bytes and assembly instructions.
+
+## hexdump (Raw Bytes)
+
+```
+hexdump -C exit.o
+```
+
+This shows all the raw bytes, but you'll need to find the actual code section among all the ELF metadata.
+
+## xxd (Alternative Hex Viewer)
+
+```
+xxd exit.o
+```
+
+Similar to hexdump but with a different format.
+
+I was super confused by the `xxd` output. I wasn't seeing my machine code. Then I did find it, but wanted to know
+how to know it was at offset `0x00000040`. That comes from `readelf -S exit.o`
+
+```
+  [ 1] .text             PROGBITS         0000000000000000  00000040
+```
+
+Then you can look at `0x00000040` in the `xxd` output.
+
+```
+00000040: b801 0000 00bb 0000 0000 cd80 0000 0000  ................
+```
+
+
+Yay!
+
+Honestly, for this exercise, using `readelf -x .text exit.o` makes more sense
+
+```
+readelf -x .text exit.o
+
+Hex dump of section '.text':
+  0x00000000 b8010000 00bbff00 0000cd80          ............
+```
+
+Wrapping up this exercise:
+
+```
+ld exit.o -o exit
+./exit
+echo $?
+# then change it to exit with 255 (just for fun and to confirm)
+```
+
+Then, you can even read the ELF file after compiling into a binary which will then include real virtual addresses
+
+```
+readelf -x .text exit
+
+Hex dump of section '.text':
+    0x00401000 b8010000 00bbff00 0000cd80          ............
+```
+
+Now open exit in Vim `nvim -b exit`. Then `%!xxd` to get the hex. Then make an edit. For example, let's make the exit code `254` now, so making `ff`, `fe`.

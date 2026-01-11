@@ -9,6 +9,7 @@
       devShells.${system}.default = pkgs.mkShell {
         nativeBuildInputs = with pkgs; [
           nasm
+          unixtools.xxd
 
           shfmt
 
