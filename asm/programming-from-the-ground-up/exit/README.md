@@ -1,23 +1,4 @@
-# `as` docs.
-
-This will tell you about the valid assembler sections. It will NOT tell you the valid
-code that you can write. That is the "instruction set". So for that you will need to
-reference something like:
-
-- https://www.felixcloutier.com/x86/
-- https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
-
-```bash
-pinfo -f $(nix-build '<nixpkgs>' -A binutils.info --no-out-link)/share/info/as.info
-
-# Space         - page down (alternative)
-# b             - page up (alternative)
-# u             - "go up the info tree"
-# Enter         - follow link
-# /             - search forward
-```
-
-## Flow
+# Flow
 
 ```txt
 Assembly Source (.s)
@@ -60,6 +41,26 @@ Vendor ID:                   GenuineIntel
 ...
 ```
 
+## `as` docs.
+
+This will tell you about the valid assembler sections. It will NOT tell you the valid
+code that you can write. That is the "instruction set". So for that you will need to
+reference something like:
+
+- https://www.felixcloutier.com/x86/
+    - Basically a rip of https://cdrdv2-public.intel.com/868139/325383-089-sdm-vol-2abcd.pdf
+- https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+
+```bash
+pinfo -f $(nix-build '<nixpkgs>' -A binutils.info --no-out-link)/share/info/as.info
+
+# Space         - page down (alternative)
+# b             - page up (alternative)
+# u             - "go up the info tree"
+# Enter         - follow link
+# /             - search forward
+```
+
 # General
 
 You don't "pass" state, you get the stack into the proper state and then `call` and
@@ -85,6 +86,39 @@ in embedded systems, etc. without OSs, or MMUs, or operations that bypass the MM
 # Intel Instruction Set
 
 Just skimming through: https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+
+Some sections that I found particularly useful:
+
+_NOTE: These sections are all in Volume 1: https://cdrdv2-public.intel.com/868138/253665-089-sdm-vol-1.pdf_
+
+This volume actually exceeded my expectations in terms of accessibility and information.
+
+The diagrams throughout are also quite helpful and accessible.
+
+- 3 - BASIC EXECUTION ENVIRONMENT
+    - 3.2.1 - 64-BIT MODE EXECUTION ENVIRONMENT
+    - 3.3 - MEMORY ORGANIZATION
+    - 3.4.1 - GENERAL-PURPOSE REGISTERS
+    - 3.4.1.1 - GENERAL-PURPOSE REGISTERS IN 64-BIT MODE
+    - 3.4.2 - SEGMENT REGISTERS
+    - 3.5 - INSTRUCTION POINTER
+        
+        Doesn't actually include much information and refers to section 6.2.4.2
+
+- 4 - DATA TYPES
+- 5.1 - INSTRUCTION SET SUMMARY / GENERAL-PURPOSE INSTRUCTIONS
+
+    Not actually helpful, just lists the instructions. That's it. Not how to use them, etc.
+
+    Refer to https://www.felixcloutier.com/x86/ instead or https://cdrdv2-public.intel.com/868139/325383-089-sdm-vol-2abcd.pdf
+
+- 6.2 - STACKS
+
+    Actually quite helpful
+
+- 7.{1,2,3} - PROGRAMMING WITH GENERAL-PURPOSE INSTRUCTIONS
+
+    Quite helpful.
 
 CRITICAL: I have no idea what I'm doing, so DONT use these notes as a reference. This is me learning from
 a combination of reading the manual (RTFM) and conversing with the modern day "wiki", namely AI.
