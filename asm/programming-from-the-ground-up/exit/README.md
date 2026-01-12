@@ -268,7 +268,7 @@ B8 (base) = 10111000 in binary
 
 The _value_ stored in the register is 32-bits, but identifying one of the eight general-purpose registers only takes 3 bits.
 
-# Choosing and Assembler
+# Choosing an Assembler
 
 ```
 as exit.s -o exit.o
