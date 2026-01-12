@@ -1,3 +1,6 @@
+as_intel_32:
+    as exit_intel_noprefix.s -o exit_intel_noprefix.o && ld exit_intel_noprefix.o -o exit_intel_noprefix
+
 as_64:
     nasm -f elf64 exit64.s -o exit64.o && ld exit64.o -o exit64
 
