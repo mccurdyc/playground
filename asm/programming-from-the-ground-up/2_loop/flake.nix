@@ -8,9 +8,12 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         nativeBuildInputs = with pkgs; [
-          binutils
-          pinfo
+          nasm
+          unixtools.xxd
 
+          shfmt
+
+          # nix
           deadnix
           statix
           nil
