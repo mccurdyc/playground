@@ -1,1 +1,4 @@
-exit*
+exit
+exit_intel_noprefix
+exit64
+exit32
