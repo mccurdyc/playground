@@ -70,7 +70,13 @@
                 statix.enable = true;
 
                 # Shell
-                shellcheck.enable = true;
+                shellcheck = {
+                  enable = true;
+                  # exclude exactly .envrc anywhere
+                  exclude = "\\.envrc$";
+                  # or only check *.sh files
+                  # files = "\\.sh$";
+                };
                 shfmt = {
                   enable = true;
                   entry = "shfmt --simplify --indent 2";
