@@ -6,3 +6,19 @@ as_64:
 
 as_32:
     nasm -f elf32 exit32.s -o exit32.o && ld -m elf_i386 exit32.o -o exit
+
+# Build loop.s with debugging symbols
+build_loop:
+    nasm -f elf64 -g -F dwarf loop.s -o loop.o && ld loop.o -o loop
+
+# Build loop.s without symbols (smaller binary)
+build_loop_min:
+    nasm -f elf64 loop.s -o loop.o && ld loop.o -o loop
+
+# Debug with gdb (no symbols)
+debug_loop:
+    gdb -ex "set pagination off" -ex "layout asm" -ex "break _start" loop
+
+# Debug with gdb (with symbols)
+debug_loop_symbols:
+    gdb -ex "set pagination off" -ex "layout asm" -ex "break _start" loop
