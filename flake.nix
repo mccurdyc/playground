@@ -73,7 +73,7 @@
                 shellcheck = {
                   enable = true;
                   # exclude exactly .envrc anywhere
-                  exclude = "\\.envrc$";
+                  excludes = [ "\\.envrc$" ];
                   # or only check *.sh files
                   # files = "\\.sh$";
                 };
