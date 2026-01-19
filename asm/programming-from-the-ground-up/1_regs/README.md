@@ -109,6 +109,9 @@ ndisasm: For:
 
 ## `mov r12, rsp`
 
+It took me roughly 3-hours and $1.41 in Claude 4.5 Sonnet credits to understand how to manually
+disassemble this line.
+
 - https://www.felixcloutier.com/x86/mov
 
 I believe it's going to be one of these encodings.
