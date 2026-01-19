@@ -2,6 +2,7 @@
 section .text
 global _start
 _start:
+  ; https://www.felixcloutier.com/x86/mov
   mov r12, rsp      ; Save stack pointer
   mov r13, rbp      ; Save base pointer
 
