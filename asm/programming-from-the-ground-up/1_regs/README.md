@@ -310,7 +310,7 @@ use 32-bit immediate by not extending via the `REX.W` byte.
 
 I think it would be `48 B8 3C` or `0100 1000 1011 1000 0011 1100` nibbles.
 
-The manual disassembly is taking ~10min now! This is exciting!
+The manual disassembly is taking ~10min now! This is exciting! I need to practice disassembling other instructions.
 
 Let me checks the assembled code.
 
