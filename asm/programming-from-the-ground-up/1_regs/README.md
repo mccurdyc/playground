@@ -173,16 +173,24 @@ So r12 = binary 1100 = decimal 12, where the high bit comes from REX.R and the l
 
 Identifies this as MOV with direction: (source) memory/register → (destination) register.
 
-Why didn't it choose `8B`?
-
-Both would work, but 89 requires fewer (not really) REX extension BITS ... kinda.
+Why it prefer `89` over `8B`?
 
 `49` - `0100 1001`
 `4C` - `0100 1100`
 
-The assembler always prefers `89` for register-to-register moves.
-**It puts the source in the more "flexible" position (the reg field).**
+It's likely that the assembler considers the following:
+
+1. Always prefer opcode 89 for reg→reg moves - just a canonical form choice, no
+deeper reason
+
+2. Prefer putting the destination in `r/m` - because in real memory operations, **the
+destination is more often memory (stores are common), so this creates consistency**
+
+3. Historical convention - early assemblers picked one and everyone copied it
+
 This is just an assembler convention, not a requirement. Hand-written machine code could use either.
+
+I'm just going to try to remember this as, you'll likely be writing to memory more often as the destination.
 
 ### `/r` - ModR/M byte follows
 
@@ -291,4 +299,84 @@ REX.R/B | reg/r/m | Register
    1    |   101   | r13
    1    |   110   | r14
    1    |   111   | r15
+```
+
+## `mov rax, 60`
+
+I think it would either use `REX.W + B8+ rd io` or `REX.W + C7 /0 id`.
+I expect it to choose the former because the latter is more "flexible" to support writing to registers
+or memory. The flexibility doesn't seem to add additional bytes though. The first could be shortened to
+use 32-bit immediate by not extending via the `REX.W` byte.
+
+I think it would be `48 B8 3C` or `0100 1000 1011 1000 0011 1100` nibbles.
+
+The manual disassembly is taking ~10min now! This is exciting!
+
+Let me checks the assembled code.
+
+Hmm. `nasm` seems to drop the `REX.W` byte. Also, I clearly dropped the remaining bytes for the imm32 which is required
+for a 64-bin register.
+
+```shell
+% objdump -d -M intel regs
+...
+0000000000401000 <_start>:
+  ...
+  401007:       b8 3c 00 00 00          mov    eax,0x3c
+```
+
+### `REX.W`
+
+`REX.WRXB` - just noting to remember the order
+
+```txt
+0100 1000
+48
+```
+
+#### Why does `nasm` drop `REX.W`?
+
+Oh, because I've compiled for 64-bit, the default register size is 64-bit and therefore I don't need to explicitly
+extend the register byte. Now, `REX.W` would exist if I had compiled for 32-bit but needed to extend this to use
+a 64-bit register like `rax`. Let's confirm.
+
+```bash
+nasm -f elf32 -g -F dwarf regs.s -o regs_32.o
+
+regs.s:10: error: instruction not supported in 32-bit mode
+regs.s:15: error: instruction not supported in 32-bit mode
+regs.s:34: error: instruction not supported in 32-bit mode
+regs.s:38: error: instruction not supported in 32-bit mode
+```
+
+I mean this makes sense. But then why isn't `REX.W` always optional? Oh wait maybe it is for the `B8` opcode where
+the second operand is `<= 32-bit`.
+
+### `B8+ rd`
+
+It's `+0` because it's `rax`.
+
+```txt
+1011 1000
+B8
+```
+
+### `io` - "Immediate Operand"
+
+Oh, the operand encoding table makes this clear:
+
+```txt
+OI	opcode + rd (w)	imm8/16/32/64	N/A	N/A
+```
+
+```txt
+0110 0000
+60
+```
+
+Ahh :facepalm: `60` is decimal, not hex.
+
+```txt
+0011 1100
+0x3C # let's prefix with 0x to make it clear :smile: it's hex
 ```
