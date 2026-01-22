@@ -1,3 +1,11 @@
 build:
     nasm -f elf64 -g -F dwarf regs.s -o regs.o
     ld regs.o -o regs
+
+build-without-dwarf:
+    nasm -f elf64 regs.s -o regs_without_dwarf.o
+    ld regs_without_dwarf.o -o regs_without_dwarf
+
+build-bin:
+    nasm -f bin regs_minimal.s -o regs.bin
+    # ld regs.bin -o regs_bin # this doesn't work

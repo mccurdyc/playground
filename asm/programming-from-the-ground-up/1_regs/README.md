@@ -380,3 +380,72 @@ Ahh :facepalm: `60` is decimal, not hex.
 0011 1100
 0x3C # let's prefix with 0x to make it clear :smile: it's hex
 ```
+
+## Seeing binary (instead of hex) .text section
+
+This is just to check my manual hex to binary conversion. There's not much practical value in this otherwise.
+
+```bash
+objcopy -O binary --only-section=.text regs /dev/stdout | xxd -b
+```
+
+To keep the original virtual memory addresses
+
+```bash
+objdump -d -M intel regs | awk '/^ /{addr=$1; for(i=2;i<=NF&&$i~/^[0-9a-f]{2}$/;i++){print addr, $i}}' | while read addr hex; do echo "$addr $(echo $hex | xxd -r -p | xxd -b -c1 | cut -d' ' -f2)"; done
+```
+
+# General Things
+
+## The actual code is 19-bytes
+
+Between addresses 401000-401011 (keep in mind that these digits are hex digits) is 19 bytes.
+
+```bash
+% ls -lh regs
+-rwxr-xr-x 1 mccurdyc users 5.2K Jan 21 07:36 regs
+
+% stat -c %s regs
+5256
+```
+
+But the `regs` binary is 5.2K or 5256 bytes! That's 99.997% of metadata.
+
+But from that you get a lot! Without the ELF binary format and DWARF debugging symbols, you can't use sections in your code and you can't link.
+
+The raw binary approach is typically used for:
+- Bootloaders
+- Shellcode
+- Embedded systems
+- Operating system kernels
+
+```bash
+bc <<< "scale=4; 19/5256"
+.0036
+```
+
+```bash
+% just build-bin
+
+% ls -lh regs.bin
+-rw-r--r-- 1 mccurdyc users 19 Jan 22 07:48 regs.bin
+
+% stat -c %s regs.bin
+19
+```
+
+Okay, now we can't even run our binary. We need the layer of abstraction that the ELF format provides. Maybe we
+can just strip debugging symbols.
+
+```bash
+% just build-without-dwarf
+
+% ls -lh regs_without_dwarf
+-rwxr-xr-x 1 mccurdyc users 4.6K Jan 22 08:24 regs_without_dwarf
+
+% stat -c %s regs_without_dwarf
+4656
+```
+
+Oh hmm honestly, I would have expected a littly bit better. Apparently debug symbols only accounted for ~20% of the binary
+size.
