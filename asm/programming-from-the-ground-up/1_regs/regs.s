@@ -1,4 +1,4 @@
-; rax will be consistent, rbx will be random
+; rsp will be consistent, rbp will be "random" based on the last process to set it.
 ; binary machine code
 ; 01001001 10001001 11100100 01001001 10001001 11101101 10010000 10111000 00111100 10111000 00111100 10111111 00000000 00001111 00000101
 ;

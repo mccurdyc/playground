@@ -1,3 +1,74 @@
+# Understanding setting up a stack
+
+`rbp` is about restoring caller state. `rbp` contains a relative location to arbitrary parameters. The processor can't manage this for you, it's "dumb". You -- the author -- know how many params functions have.
+`rsp` is automatically maintained because it always references a single location.
+
+Sometimes `rbp` is pushed to the stack by convention e.g., in `_start` where you know there is not "caller" of `_start` to be restored.
+
+If you don't use `rbp` you will have tons of off-by-one issues and end up not being able to restore the state
+of other caller parameters.
+
+It's quite beautiful that with just two places to store state --- current and previous --- you can have
+intricate call trees to navigate linear memory. I assume if memory were three-dimensional, etc. you would need
+to have dimension+1 storage locations.
+
+I still need to come back to this because my grasp is still fleeting. I want to read more of CS:APP.
+
+```asm
+_start:
+    mov rbp, rsp
+    call some_fn
+
+some_fn:
+    push rbp          ; Save caller's frame
+```
+
+Our goal here is to understand why the `push rbp` is necessary in `_start`.
+
+
+The following is just to show that `rbp` is junk to start, but that the CPU manages `rsp`.
+
+```asm
+mov r12, rsp      ; Save stack pointer
+mov r13, rbp      ; Save base pointer
+```
+
+```txt
+(gdb) print/x $r12
+$1 = 0x7fffffffa220 ; rsp
+
+(gdb) print/x $r13
+$2 = 0x0            ; rbp
+```
+
+Read section 6-2 "Stacks" and 6-4 "Calling procedures using CALL and RET" of the x86 instruction set.
+
+- https://www.felixcloutier.com/x86/call
+
+"When executing a near call, the processor pushes the value of the EIP register (which contains the offset of the instruction following the CALL instruction)
+on the stack (for use later as a return-instruction pointer). The processor then branches to the address in
+the current code segment specified by the target operand."
+
+Ah, so it does a `push` which manipulates the stack pointer `rsp`.
+
+Also, most calls are "near calls".
+
+- https://www.felixcloutier.com/x86/ret
+
+If we have the following:
+
+```asm
+_start:
+    mov rbp, rsp
+    call some_fn
+
+some_fn:
+    push rbp
+    call another_fn
+    pop rbp
+    ret
+```
+
 # Debugging
 
 ```
