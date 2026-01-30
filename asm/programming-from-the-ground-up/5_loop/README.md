@@ -1,64 +1,96 @@
-# Syscall numbers
+# looping
 
-For 32-bit:
-The book assumes a 32-bit architecture. However, we are working with 64-bit.
-So if you want to cross-reference what the book is using, see - https://github.com/torvalds/linux/blob/v6.16-rc1/arch/x86/entry/syscalls/syscall_32.tbl
+I was extremely humbled by this learning session. When I literally tried to write a loop and was lost. It's honestly
+for this purpose that I really appreciate AI. Where you don't need to be afraid of asking the dumbest possible questions.
 
-For 64-bit:
-- https://filippo.io/linux-syscall-table/
-- https://github.com/torvalds/linux/blob/v6.16-rc1/arch/x86/entry/syscalls/syscall_64.tbl
+Learning is a process of testing your humility and patience. Are you willing to ask the dumb questions or give up and go back
+to the comfortable? 1% every day. Heck even 0.000001% every day. It's not about progress. It's about process.
 
-# How are syscalls implemented in the Kernel?
+I wanted to get to the "fun" parts of actually building something. How can I do that when I don't even know how to
+create a simple loop construct.
 
-- https://filippo.io/linux-syscall-table/ (Geeze, thanks Filippo!).
+## `LOOP` and `LOOPcc`
 
-""Syscalls are implemented in functions named as in the Entry point column, generated with `DEFINE_SYSCALLx` macros.
-For more information, see Documentation/process/adding-syscalls.rst.
-To learn more, read the `syscall(2)` and `syscalls(2)` man pages."
+https://www.felixcloutier.com/x86/loop:loopcc
 
-# `RET` and `LEAVE`
+Performs a loop operation using the RCX, ECX or CX register as a counter (depending on whether address size is 64 bits, 32 bits, or 16 bits).
 
-I was trying to understand why you needed to `push rbp` at the beginning of `_start`. It boils down
-to the function that you are calling expecting the stack pointer and stack to have a value to pop
-off the stack.
+Each time the LOOP instruction is executed, the count register is decremented, then checked for 0. If the count is 0, the loop is terminated and program execution continues with the instruction following the LOOP instruction.
 
-It's the `LEAVE` or the stack frame cleanup that has this expectation on the state of the stack, not `RET`.
+If the count is not zero, a near jump is performed to the destination (target) operand, which is presumably the instruction at the beginning of the loop.
 
-**Intel 64 and IA-32 Architectures Software Developer's Manual**
+Early termination:
 
-- `LEAVE` (stack frame cleanup) - p. Volume 2B 3-542
-    - https://www.felixcloutier.com/x86/leave
-    - You don't have to call if you are in a leaf function that calls no other functions. Or if you prefer doing cleanup manually.
-- `RET` (returning) - p. Volume 2B 4-560
-    - https://www.felixcloutier.com/x86/ret
+Some forms of the loop instruction (LOOPcc) also accept the ZF flag as a condition for terminating the loop before the count reaches zero. With these forms of the instruction, a condition code (cc) is associated with each instruction to indicate the condition being tested for. Here, the LOOPcc instruction itself does not affect the state of the ZF flag; the ZF flag is changed by other instructions in the loop.
 
-    "Transfers program control to a return address located on the top of the stack. The address is usually placed on the stack by a CALL instruction, and the return is made to the instruction that follows the CALL instruction."
+## Where are the various jump conditions? `Jcc`
 
-The instruction is implemented in microcode within the CPU, but open-source emulators provide software implementations for reference.
+https://www.felixcloutier.com/x86/jcc
 
-# Making the Linear Weave
+The manual groups related instructions to avoid repetition. Instead of separate pages for each
+jump, they document:
+- `Jcc` - All conditional jumps with their condition codes
+    - with the JMP instruction, the transfer is one-way; that is, a return address is not saved.
+- `SETcc` - All conditional set-byte instructions
+- `CMOVcc` - All conditional moves
+- `LOOPcc` - All conditional moves
 
-Honestly how the stack was designed and the way function stacks are "chained" around physical memory is
-quite beautiful. This is an OS abstraction. Memory is linear (abstraction) and it's the combination of stack and registers that go from the linear
-to something "fluid".
+## `FLAGS`, `EFLAGS` and `RFLAGS` - "program status and control register"
 
-I acknowledge it's not just the stack and registers that make this possible, but that's how I think about
-this. It actually feels like maybe the MMU is where the beauty is held.
+It's `EFLAGS` because the upper 32-bits of `RFLAGS` are just reserved.
 
-# What is a physical address?
+`*FLAGS` is just another register. See Figures 3-1, 3-2, 3-4 and 3-8 in the Intel x86 manual. (TODO)
 
-What is a physical address in memory? Don't these refer to physical locations?
-Are the physical locations linear?
+## 7.3.8.2 Conditional Transfer Instructions
 
-No they are not linear or contiguous in hardware they are spread across chips/channels.
+"The conditional transfer instructions execute jumps or loops that transfer program control to another instruction in
+the instruction stream if specified conditions are met. The conditions for control transfer are specified with a set of
+condition codes that define various states of the status flags (CF, ZF, OF, PF, and SF) in the EFLAGS register."
 
-It's a matrix.
+### Status Flags (arithmetic results) (Section 3.4.3.1)
 
-The linear virtual address space is created by the OS, not the MMU:
-- OS sets up page tables
-- OS tells each process "you have a linear address space from 0 to 2^48"
-- MMU just executes the translation
+- CF (bit 0) Carry flag — Set if an arithmetic operation generates a carry or a borrow out of the most-
+significant bit of the result; cleared otherwise. This flag indicates an overflow condition for
+unsigned-integer arithmetic. It is also used in multiple-precision arithmetic.
 
-# Exhaustion
+- PF (bit 2) Parity flag — Set if the least-significant byte of the result contains an even number of 1 bits;
+cleared otherwise.
 
-The OS tries to prevent physical exhaustion of resources via many means.
+- AF (bit 4) Auxiliary Carry flag — Set if an arithmetic operation generates a carry or a borrow out of bit
+3 of the result; cleared otherwise. This flag is used in binary-coded decimal (BCD) arithmetic.
+
+- ZF (bit 6) SF (bit 7) Zero flag — Set if the result is zero; cleared otherwise.
+Sign flag — Set equal to the most-significant bit of the result, which is the sign bit of a signed
+integer. (0 indicates a positive value and 1 indicates a negative value.)
+
+- OF (bit 11) Overflow flag — Set if the integer result is too large a positive number or too small a negative
+number (excluding the sign-bit) to fit in the destination operand; cleared otherwise. This flag
+indicates an overflow condition for signed-integer (two’s complement) arithmetic
+
+There are also Control Flags and System Flags.
+
+## EFLAGS Set by CMP.
+
+After `cmp %rax, %rbx` (which computes rbx - rax):
+
+```txt
+1. ZF (Zero Flag) - Set if result is zero (operands equal)
+2. SF (Sign Flag) - Set if result is negative
+3. CF (Carry Flag) - Set if unsigned underflow occurred
+4. OF (Overflow Flag) - Set if signed overflow occurred
+```
+
+```txt
+Opcode   Mnemonic   Condition
+------   --------   ---------
+74       je/jz      ZF = 1
+75       jne/jnz    ZF = 0
+7C       jl/jnge    SF ≠ OF
+7D       jge/jnl    SF = OF
+7E       jle/jng    ZF = 1 OR SF ≠ OF
+7F       jg/jnle    ZF = 0 AND SF = OF
+72       jb/jnae    CF = 1
+73       jae/jnb    CF = 0
+76       jbe/jna    CF = 1 OR ZF = 1
+77       ja/jnbe    CF = 0 AND ZF = 0
+```

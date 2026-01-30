@@ -1,73 +1,92 @@
-# Understanding the stack
+# looping
 
-Chapter 4 (p56) talks about function parameters. `rbp` is an address that can be used to relatively
-refer to function parameters that is "out of the way" of the stack pointer.
+I was extremely humbled by this learning session. When I literally tried to write a loop and was lost. It's honestly
+for this purpose that I really appreciate AI. Where you don't need to be afraid of asking the dumbest possible questions.
 
-For parameters, we "reserve space" --- relative to `rbp` --- on the stack. Then, within
-the function we can use locations relative to `rbp` for accessing the paramters as well
-as local variables.
+Learning is a process of testing your humility and patience. Are you willing to ask the dumb questions or give up and go back
+to the comfortable? 1% every day. Heck even 0.000001% every day. It's not about progress. It's about process.
 
-## Stack growth
+I wanted to get to the "fun" parts of actually building something. How can I do that when I don't even know how to
+create a simple loop construct.
 
-Stack growth isn't consistent i.e., it doesn't always grow by 1-byte or 1-word. In other
-words, stack elements are not uniformly-sized.
+## `LOOP` and `LOOPcc`
 
-Stack alignment is specified by the ABI. System V AMD64 ABI requires 16-byte stack alignment before call instructions
+https://www.felixcloutier.com/x86/loop:loopcc
 
-Stack alignments affects performance because you have to remember that the stack is just
-an abstraction on top of memory which has layers of caching. So if you have values that
-often lead to misalignment or where data is going to span multiple cache-lines, you
-are doing more work to get data than should be necessary. It's a performance-memory tradeoff.
-If you care more about memory than performance, maybe you allow misalignment to avoid
-wasted space and vice versa. Additionally, misalignment makes atomic operations impossible,
-so it's also a reliability(or consistency)-memory tradeoff.
+Performs a loop operation using the RCX, ECX or CX register as a counter (depending on whether address size is 64 bits, 32 bits, or 16 bits).
 
-Expect a 10-30% performance hit (or worse) for a misaligned stack.
+Each time the LOOP instruction is executed, the count register is decremented, then checked for 0. If the count is 0, the loop is terminated and program execution continues with the instruction following the LOOP instruction.
 
-Stack growth is based on the operand size. So if you are using 64-bit registers, the
-stack will grow accordingly.
+If the count is not zero, a near jump is performed to the destination (target) operand, which is presumably the instruction at the beginning of the loop.
 
-`rax` - grows by 8-bytes (qword)
-`eax` - grows by 4-bytes (dword)
-`ax` - grows by 2-bytes (word)
+## Where are the various jump conditions? `Jcc`
 
-What about for immediate values like `1`? It's based on the mode e.g., 64-bit, 32-bit, 16-bit, etc.
+https://www.felixcloutier.com/x86/jcc
 
-The assembler determines the operand size from the current operating mode, not from the immediate value itself.
+The manual groups related instructions to avoid repetition. Instead of separate pages for each
+jump, they document:
+- `Jcc` - All conditional jumps with their condition codes
+    - with the JMP instruction, the transfer is one-way; that is, a return address is not saved.
+- `SETcc` - All conditional set-byte instructions
+- `CMOVcc` - All conditional moves
+- `LOOPcc` - All conditional moves
 
-64-bit - grows by 8-bytes (qword)
-32-bit - grows by 4-bytes (dword)
-16-bit - grows by 2-bytes (word)
+## `FLAGS`, `EFLAGS` and `RFLAGS` - "program status and control register"
 
-Wow that feels like quite a waste to grow by 8-bytes just to store essentially a single bit.
+It's `EFLAGS` because the upper 32-bits of `RFLAGS` are just reserved.
 
-00000000 00000000  00000000 00000000  00000000 00000000  00000000 00000001
+`*FLAGS` is just another register. See Figures 3-1, 3-2, 3-4 and 3-8 in the Intel x86 manual. (TODO)
 
-But also, you don't always have a choice. If you are in 64-bit mode (for reasons), the CPU is
-going to use 64-bit registers for things like the stack pointer (`rsp`). Therefore, you
-wouldn't want to use a 32-bit `ebp` base pointer for memory addressing. I mean there's
-nothing preventing you, but it's not going to work how you want.
+## 7.3.8.2 Conditional Transfer Instructions
 
-By default in 64-bit mode is to grow and shrink the stack by 8-bytes. This kind of makes sense because registers are 64-bit (8-bytes),
-instruction operands are 8-bytes and virtual memory address pointers are 8-bytes so when you are pushing the references on the stack it's 8-bytes. The stack is
-an abstraction on top of single-byte memory locations.
+"The conditional transfer instructions execute jumps or loops that transfer program control to another instruction in
+the instruction stream if specified conditions are met. The conditions for control transfer are specified with a set of
+condition codes that define various states of the status flags (CF, ZF, OF, PF, and SF) in the EFLAGS register."
 
-## Function Parameters
+### Status Flags (arithmetic results) (Section 3.4.3.1)
 
-System V ABI (Linux/macOS):
-- First 6 parameters go in registers: RDI, RSI, RDX, RCX, R8, R9
-- Additional parameters (7th+) go on stack at 16(RBP), 24(RBP), etc.
+- CF (bit 0) Carry flag — Set if an arithmetic operation generates a carry or a borrow out of the most-
+significant bit of the result; cleared otherwise. This flag indicates an overflow condition for
+unsigned-integer arithmetic. It is also used in multiple-precision arithmetic.
 
-Then parameters >6 get pushed to the stack by the caller and are referenced as offset from `rbp`.
+- PF (bit 2) Parity flag — Set if the least-significant byte of the result contains an even number of 1 bits;
+cleared otherwise.
+
+- AF (bit 4) Auxiliary Carry flag — Set if an arithmetic operation generates a carry or a borrow out of bit
+3 of the result; cleared otherwise. This flag is used in binary-coded decimal (BCD) arithmetic.
+
+- ZF (bit 6) SF (bit 7) Zero flag — Set if the result is zero; cleared otherwise.
+Sign flag — Set equal to the most-significant bit of the result, which is the sign bit of a signed
+integer. (0 indicates a positive value and 1 indicates a negative value.)
+
+- OF (bit 11) Overflow flag — Set if the integer result is too large a positive number or too small a negative
+number (excluding the sign-bit) to fit in the destination operand; cleared otherwise. This flag
+indicates an overflow condition for signed-integer (two’s complement) arithmetic
+
+There are also Control Flags and System Flags.
+
+## EFLAGS Set by CMP.
+
+After `cmp %rax, %rbx` (which computes rbx - rax):
 
 ```txt
-+-----------+  <-- higher addresses
-|  param 9  | 32(RBP)  (7th+ params pushed by caller)
-|  param 8  | 24(RBP)  (7th+ params pushed by caller)
-|  param 7  | 16(RBP)  (7th+ params pushed by caller)
-|  ret addr | 8(RBP)   (pushed by CALL instruction)
-|  old RBP  | 0(RBP)   (pushed by function prologue)
-|  local 1  | -8(RBP)  (allocated by callee)
-|  local 2  | -16(RBP) (allocated by callee)
-+-----------+  <-- RSP (after locals allocation)
+1. ZF (Zero Flag) - Set if result is zero (operands equal)
+2. SF (Sign Flag) - Set if result is negative
+3. CF (Carry Flag) - Set if unsigned underflow occurred
+4. OF (Overflow Flag) - Set if signed overflow occurred
+```
+
+```txt
+Opcode   Mnemonic   Condition
+------   --------   ---------
+74       je/jz      ZF = 1
+75       jne/jnz    ZF = 0
+7C       jl/jnge    SF ≠ OF
+7D       jge/jnl    SF = OF
+7E       jle/jng    ZF = 1 OR SF ≠ OF
+7F       jg/jnle    ZF = 0 AND SF = OF
+72       jb/jnae    CF = 1
+73       jae/jnb    CF = 0
+76       jbe/jna    CF = 1 OR ZF = 1
+77       ja/jnbe    CF = 0 AND ZF = 0
 ```

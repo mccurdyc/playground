@@ -484,6 +484,8 @@ But the `regs` binary is 5.2K or 5256 bytes! That's 99.997% of metadata.
 
 But from that you get a lot! Without the ELF binary format and DWARF debugging symbols, you can't use sections in your code and you can't link.
 
+See p175 of CS:APP for a bit more explanation.
+
 The raw binary approach is typically used for:
 - Bootloaders
 - Shellcode

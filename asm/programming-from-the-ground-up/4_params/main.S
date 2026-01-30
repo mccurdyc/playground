@@ -2,8 +2,10 @@ section .text
 
 global _start
 _start:
-  push 3
-  push 2
+  ; First 6 parameters go in registers: RDI, RSI, RDX, RCX, R8, R9
+  mov rdi, 2
+  mov rsi, 3
+
   call power
 
   ; TODO - clean stack
@@ -13,7 +15,19 @@ _start:
 ; takes two parameters
 ; param 1 - base
 ; param 2 - power
+;
+; 2^0 * 2^1 * 2^2
+; 1 * 2 * 2 * 2
 power:
-  ; setup stack frame ("display"?)
   push rbp
   mov rbp, rsp
+
+  cmp rsi, 1
+  jmp power
+
+  mul rdx, rdi
+
+  leave
+  ret
+
+
