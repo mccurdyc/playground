@@ -3,7 +3,7 @@
 {
   config.devShells.rust =
     let
-      inherit (config.mccurdyc-rust) toolchain;
+      # inherit (config.mccurdyc-rust) toolchain;
 
     in
     pkgs.mkShell {
@@ -11,8 +11,9 @@
       meta.description = "Rust development environment";
 
       shellHook = ''
+          echo "hello"
         # For rust-analyzer 'hover' tooltips to work.
-        export RUST_SRC_PATH="${toolchain}/lib/rustlib/src/rust/library";
+        # export RUST_SRC_PATH="$${toolchain}/lib/rustlib/src/rust/library";
       '';
 
       buildInputs = [
@@ -20,7 +21,7 @@
       ];
 
       packages = [
-        toolchain
+        # toolchain
       ];
     };
 }

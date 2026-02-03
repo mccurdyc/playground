@@ -16,8 +16,7 @@
     #
     # https://flake.parts/dogfood-a-reusable-module
     flakeModules = {
-      default = import ./nix/modules/flake-module.nix { inherit rust-overlay; };
-      nixpkgs = ./nix/modules/nixpkgs.nix;
+      default = import ./modules/flake-module.nix { inherit rust-overlay; };
     };
   };
 }
