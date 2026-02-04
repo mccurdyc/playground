@@ -1,6 +1,4 @@
 {
-  description = "a flake";
-
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
@@ -13,6 +11,8 @@
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
 
+      # These "merge" into self' to be used below. You can't reference
+      # inputs or inputs' because flake-parts hasn't evaluated inputs as a Nix module.
       imports = [
         inputs.mccurdyc-rust.flakeModules.default
       ];

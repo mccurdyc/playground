@@ -1,4 +1,9 @@
-# Nix Modules: returns a configured `config` attrset
+# flake-parts: A framework to configure flakes via nix modules
+
+Write Nix modules --- exposing `options` to configure `config` --- which are consumed in a top-level
+flake using flake-parts. flake-parts evaluates `import`ed modules and sets `self'`.
+
+## Nix Modules: returns a configured `config` attrset
 
 Before we try to understand flake-parts, we must understand the inner-workings of modules.
 
@@ -11,7 +16,7 @@ mergable types and priorities. The merging reminded me a bit of Cue at first whe
 "flat" object that has `options` and `configs` fields. However, Cue is much stricter and prevents "overrides" where Nix
 differs in that it defines an algorithm to handle them.
 
-# flake-parts: A framework to configure flakes via nix modules
+## flake-parts: A framework to configure flakes via nix modules
 
 Defines a reusable module-sharing pattern, similar to `nixosModules` or `darwinModules`. These modules
 are primarily used to define and configure options on a per-system basis, then to be consumed as proper
@@ -31,10 +36,10 @@ flake-parts is just a module system evaluator that:
 
 It doesn't care what the options are named - devShells, packages, mccurdyc-rust, banana - all the same to flake-parts.
 
-## `flake-module.nix`: _The_ nix module to configure a flake.
+### `flake-module.nix`: _The_ nix module to configure a flake.
 
 A nix module that defines flake or per-system -level flake attributes?
 
-### `providerInputs`
+#### `providerInputs`
 
 This prevents consuming flakes from having to explicitly define inputs when instead I could define inputs within the providing flake.
