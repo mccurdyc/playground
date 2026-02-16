@@ -1,147 +1,76 @@
 {
-  # References
-  # - https://ryantm.github.io/nixpkgs/languages-frameworks/rust/
-  # - https://github.com/tfc/rust_async_http_code_experiment/blob/master/flake.nix
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+    git-hooks.url = "github:cachix/git-hooks.nix";
+
     flake-parts.url = "github:hercules-ci/flake-parts";
-    # For a pure binary installation of the Rust toolchain
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # rust-flake builds on:
+    # - https://github.com/ipetkov/crane
+    # - https://github.com/oxalica/rust-overlay
+    rust-flake.url = "github:juspay/rust-flake";
+
+    # personal preferences
+    # mccurdyc-preferences.url = "path:../modules";
+    mccurdyc-preferences.url = "github:mccurdyc/nix-templates?dir=modules";
   };
 
-  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, flake-parts, rust-overlay, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      flake = { };
+  outputs = inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ];
 
-      systems = [
-        "aarch64-darwin"
-        "x86_64-darwin"
-        "x86_64-linux"
+      # imports are core to how flake-parts evaluates flakeModules perSystem
+      imports = [
+        inputs.git-hooks.flakeModule
+        inputs.mccurdyc-preferences.flakeModules.default
       ];
 
-      # This is needed for pkgs-unstable - https://github.com/hercules-ci/flake-parts/discussions/105
-      imports = [ inputs.flake-parts.flakeModules.easyOverlay ];
-
-      perSystem = { system, ... }:
-        let
-          overlays = [ (import rust-overlay) ];
-          pkgs = import inputs.nixpkgs {
-            inherit system overlays;
-            config.allowUnfree = true;
-          };
-          pkgs-unstable = import inputs.nixpkgs-unstable {
-            inherit system overlays;
-            config.allowUnfree = true;
-          };
-          # v = "1.80.1";
-          v = "latest";
-          rustChannel = "stable";
-          # rustChannel = nightly
-          # rustChannel = beta
-          pinnedRust = pkgs.rust-bin.${rustChannel}.${v}.default.override {
-            extensions = [
-              "rust-src"
-              "rust-analyzer"
-            ];
+      perSystem = _: {
+        mccurdyc = {
+          pre-commit = {
+            enable = true;
+            rust.enable = true;
+            just.enable = true;
           };
 
-          # Used for 'nix build'
-          rustPlatform = pkgs.makeRustPlatform {
-            cargo = pinnedRust;
-            rustc = pinnedRust;
-          };
-        in
-        {
-          # This is needed for pkgs-unstable - https://github.com/hercules-ci/flake-parts/discussions/105
-          overlayAttrs = { inherit pkgs-unstable overlays; };
-
-          formatter = pkgs.nixpkgs-fmt;
-
-          # https://github.com/cachix/git-hooks.nix
-          # 'nix flake check'
-          checks = {
-            # 'pre-commit run' to test directly
-            pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
-              src = ./.;
-              hooks = {
-                # Project
-                just-test = {
-                  enable = true;
-                  name = "just-test";
-                  entry = "just test";
-                  stages = [ "pre-commit" ];
-                  pass_filenames = false;
-                };
-
-                just-lint = {
-                  enable = true;
-                  name = "just-lint";
-                  entry = "just lint";
-                  stages = [ "pre-commit" ];
-                  pass_filenames = false;
-                };
-
-                # Nix
-                deadnix.enable = true;
-                nixpkgs-fmt.enable = true;
-                statix.enable = true;
-
-                # Rust
-                rustfmt.enable = true;
-                cargo-check.enable = true;
-
-                # Shell
-                shellcheck.enable = true;
-                shfmt.enable = true;
-              };
-            };
+          devshell = {
+            extraPackages = [ ];
           };
 
-          packages = {
-            # nix build
-            # nix run
-            default = rustPlatform.buildRustPackage {
-              pname = "app";
-              version = "1.0.0";
-              src = pkgs.lib.cleanSource ./.; # the folder with the cargo.toml
-              cargoLock.lockFile = ./Cargo.lock;
-              cargoBuildFlags = [ "--bin" "app" ];
-              doCheck = false; # disable so that these can be built independently
-              # https://nixos.org/manual/nixpkgs/stable/#ssec-installCheck-phase
-              doInstallCheck = true; # disable so that these can be built independently
-            };
-          };
+          dockerfile = {
+            enable = true;
+            extraIgnore = ''
+              target/
+            '';
+            content = ''
+              # syntax=docker/dockerfile:1
+              FROM lukemathwalker/cargo-chef:latest-rust-1.87-alpine AS chef
+              WORKDIR /app
 
-          devShells.default = pkgs.mkShell {
-            inherit (self.checks.${system}.pre-commit-check) shellHook;
-            nativeBuildInputs = with pkgs; [
-              gcc
-            ];
-            buildInputs = with pkgs; [
-              pinnedRust
-            ] ++ self.checks.${system}.pre-commit-check.enabledPackages;
+              FROM chef AS planner
+              COPY . .
+              RUN cargo chef prepare --recipe-path recipe.json
 
-            # https://github.com/NixOS/nixpkgs/blob/736142a5ae59df3a7fc5137669271183d8d521fd/doc/build-helpers/special/mkshell.section.md?plain=1#L1
-            packages = [
-              pkgs.unixtools.xxd
-              pkgs.statix
-              pkgs.nixpkgs-fmt
-              pkgs-unstable.nil
+              FROM chef AS builder
+              COPY --from=planner /app/recipe.json recipe.json
+              # Build dependencies - this is the caching Docker layer!
+              RUN cargo chef cook --release --recipe-path recipe.json
+              # Build application
+              COPY . .
+              RUN cargo build --release --bin app
 
-              # Rust
-              # NOTES:
-              # - Be careful defining rust tools (e.g., clippy) here because
-              # you need to guarantee they use the same Tust version as defined
-              # in rustVersion.
-              pkgs.openssl
-              pkgs.rust-analyzer
-            ];
+              FROM alpine:3.20 AS runtime
+              RUN apk add --no-cache ca-certificates \
+                  && addgroup -g 1000 app \
+                  && adduser -D -s /bin/sh -u 1000 -G app app
+              WORKDIR /app
+              COPY --from=builder /app/target/release/app /app/app
+              USER app
+              ENTRYPOINT ["/app/app"]
+              CMD ["greet"]
+            '';
           };
         };
+      };
     };
 }

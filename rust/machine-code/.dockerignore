@@ -1,0 +1,28 @@
+# Development
+.direnv/
+.envrc
+flake.nix
+flake.lock
+Justfile
+*.md
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Nix
+result
+result-*
+
+# Docker
+Dockerfile
+.dockerignore
+
+target/
+
